@@ -46,21 +46,46 @@ export default function AddBottle({ onNavigate }) {
       <div className="card">
         <div className="card-title">Bottle details</div>
         <div className="form-grid">
-          <div className="form-group"><label>Wine name *</label><input value={form.name} onChange={e => set("name", e.target.value)} placeholder="e.g. Château Margaux" /></div>
-          <div className="form-group"><label>Vintage year *</label><input type="number" value={form.vintage} onChange={e => set("vintage", e.target.value)} placeholder="2018" min="1900" max="2024" /></div>
-          <div className="form-group"><label>Type *</label>
+          <div className="form-group">
+            <label>Wine name *</label>
+            <input value={form.name} onChange={e => set("name", e.target.value)} placeholder="e.g. Château Margaux" />
+          </div>
+          <div className="form-group">
+            <label>Vintage year *</label>
+            <input type="number" value={form.vintage} onChange={e => set("vintage", e.target.value)} placeholder="2018" min="1900" max="2024" />
+          </div>
+          <div className="form-group">
+            <label>Type *</label>
             <select value={form.type} onChange={e => set("type", e.target.value)}>
               {["Red","White","Rosé","Sparkling","Dessert","Fortified"].map(t => <option key={t}>{t}</option>)}
             </select>
           </div>
-          <div className="form-group"><label>Region *</label><input value={form.region} onChange={e => set("region", e.target.value)} placeholder="e.g. Bordeaux, France" /></div>
-          <div className="form-group"><label>Producer *</label><input value={form.producer} onChange={e => set("producer", e.target.value)} placeholder="e.g. Château Margaux SA" /></div>
-          <div className="form-group"><label>Current owner *</label><input value={form.currentOwner} onChange={e => set("currentOwner", e.target.value)} placeholder="Full name" /></div>
-          <div className="form-group"><label>Quantity</label><input type="number" value={form.quantity} onChange={e => set("quantity", e.target.value)} min="1" /></div>
-          <div className="form-group"><label>Purchase price (£)</label><input type="number" value={form.purchasePrice} onChange={e => set("purchasePrice", e.target.value)} placeholder="0.00" min="0" step="0.01" /></div>
-          <div className="form-group full"><label>Description / notes</label><textarea rows={2} value={form.description} onChange={e => set("description", e.target.value)} placeholder="Optional tasting notes or details…" /></div>
+          <div className="form-group">
+            <label>Region *</label>
+            <input value={form.region} onChange={e => set("region", e.target.value)} placeholder="e.g. Bordeaux, France" />
+          </div>
+          <div className="form-group">
+            <label>Producer *</label>
+            <input value={form.producer} onChange={e => set("producer", e.target.value)} placeholder="e.g. Château Margaux SA" />
+          </div>
+          <div className="form-group">
+            <label>Current owner *</label>
+            <input value={form.currentOwner} onChange={e => set("currentOwner", e.target.value)} placeholder="Full name" />
+          </div>
+          <div className="form-group">
+            <label>Quantity <span style={{ color: "#bbb", fontWeight: 400 }}>(optional)</span></label>
+            <input type="number" value={form.quantity} onChange={e => set("quantity", e.target.value)} min="1" />
+          </div>
+          <div className="form-group">
+            <label>Purchase price (£) <span style={{ color: "#bbb", fontWeight: 400 }}>(optional)</span></label>
+            <input type="number" value={form.purchasePrice} onChange={e => set("purchasePrice", e.target.value)} placeholder="0.00" min="0" step="0.01" />
+          </div>
           <div className="form-group full">
-            <label>Bottle image (optional)</label>
+            <label>Description / notes <span style={{ color: "#bbb", fontWeight: 400 }}>(optional)</span></label>
+            <textarea rows={2} value={form.description} onChange={e => set("description", e.target.value)} placeholder="Optional tasting notes or details…" />
+          </div>
+          <div className="form-group full">
+            <label>Bottle image <span style={{ color: "#bbb", fontWeight: 400 }}>(optional)</span></label>
             <input type="file" accept="image/*" onChange={e => {
               setImage(e.target.files[0]);
               setPreview(URL.createObjectURL(e.target.files[0]));
@@ -69,7 +94,9 @@ export default function AddBottle({ onNavigate }) {
           </div>
         </div>
         <div className="btn-group">
-          <button className="btn btn-primary" onClick={handleSubmit} disabled={loading}>{loading ? "Mining block…" : "Register on blockchain"}</button>
+          <button className="btn btn-primary" onClick={handleSubmit} disabled={loading}>
+            {loading ? "Mining block…" : "Register on blockchain"}
+          </button>
           <button className="btn" onClick={() => { setForm(INITIAL); setImage(null); setPreview(null); }}>Clear</button>
         </div>
       </div>
@@ -80,8 +107,14 @@ export default function AddBottle({ onNavigate }) {
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, fontSize: 13 }}>
             <div><span style={{ color: "#888" }}>Block index:</span> <strong>#{lastBlock.index}</strong></div>
             <div><span style={{ color: "#888" }}>Nonce:</span> <strong>{lastBlock.nonce}</strong></div>
-            <div style={{ gridColumn: "1/-1" }}><span style={{ color: "#888" }}>Hash:</span><br /><span className="hash-text" style={{ fontSize: 12, wordBreak: "break-all" }}>{lastBlock.hash}</span></div>
-            <div style={{ gridColumn: "1/-1" }}><span style={{ color: "#888" }}>Previous hash:</span><br /><span className="hash-text" style={{ fontSize: 12, wordBreak: "break-all" }}>{lastBlock.previousHash}</span></div>
+            <div style={{ gridColumn: "1/-1" }}>
+              <span style={{ color: "#888" }}>Hash:</span><br />
+              <span className="hash-text" style={{ fontSize: 12, wordBreak: "break-all" }}>{lastBlock.hash}</span>
+            </div>
+            <div style={{ gridColumn: "1/-1" }}>
+              <span style={{ color: "#888" }}>Previous hash:</span><br />
+              <span className="hash-text" style={{ fontSize: 12, wordBreak: "break-all" }}>{lastBlock.previousHash}</span>
+            </div>
           </div>
           <div className="btn-group">
             <button className="btn btn-primary" onClick={() => onNavigate("inventory")}>View inventory</button>
