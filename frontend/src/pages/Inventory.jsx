@@ -63,9 +63,17 @@ export default function Inventory({ onNavigate }) {
           <p className="page-sub">All registered bottles on the blockchain</p>
         </div>
         <div style={{ display: "flex", gap: 8 }}>
-  <button className="btn" onClick={() => exportToPDF(bottles)} disabled={bottles.length === 0}>📄 Export PDF</button>
-  <button className="btn btn-primary" onClick={() => onNavigate("add")}>+ Register bottle</button>
-</div>
+          <button
+            className="btn"
+            onClick={() => exportToPDF(bottles)}
+            disabled={bottles.length === 0}
+          >
+            📄 Export PDF
+          </button>
+          <button className="btn btn-primary" onClick={() => onNavigate("add")}>
+            + Register bottle
+          </button>
+        </div>
       </div>
 
       <div className="card">
@@ -123,6 +131,7 @@ export default function Inventory({ onNavigate }) {
               <thead>
                 <tr>
                   <th>ID</th>
+                  <th>Image</th>
                   <th>Wine</th>
                   <th>Vintage</th>
                   <th>Type</th>
@@ -139,6 +148,36 @@ export default function Inventory({ onNavigate }) {
                   <tr key={b._id}>
                     <td>
                       <span className="hash-text">{b.bottleId}</span>
+                    </td>
+                    <td>
+                      {b.imageUrl ? (
+                        <img
+                          src={b.imageUrl}
+                          alt={b.name}
+                          style={{
+                            width: 40,
+                            height: 40,
+                            objectFit: "cover",
+                            borderRadius: 6,
+                            border: "1px solid #ddd",
+                          }}
+                        />
+                      ) : (
+                        <div
+                          style={{
+                            width: 40,
+                            height: 40,
+                            borderRadius: 6,
+                            background: "#f0ede6",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            fontSize: 18,
+                          }}
+                        >
+                          🍷
+                        </div>
+                      )}
                     </td>
                     <td>
                       <strong style={{ fontWeight: 500 }}>{b.name}</strong>
