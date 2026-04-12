@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import "./styles/App.css";
@@ -8,19 +8,27 @@ import AddBottle from "./pages/AddBottle";
 import Transfer from "./pages/Transfer";
 import Verify from "./pages/Verify";
 import Ledger from "./pages/Ledger";
+import { validateChain } from "./utils/api";
 
 const NAV = [
   { id: "dashboard", icon: "📊", label: "Dashboard" },
   { id: "inventory", icon: "🍷", label: "Inventory" },
-  { id: "add", icon: "➕", label: "Register" },
-  { id: "transfer", icon: "🔄", label: "Transfer" },
-  { id: "verify", icon: "✅", label: "Verify" },
-  { id: "ledger", icon: "⛓️", label: "Ledger" },
+  { id: "add", icon: "+", label: "Register" },
+  { id: "transfer", icon: "⇄", label: "Transfer" },
+  { id: "verify", icon: "✓", label: "Verify" },
+  { id: "ledger", icon: "⛓", label: "Ledger" },
 ];
 
 export default function App() {
   const [page, setPage] = useState("dashboard");
   const [extra, setExtra] = useState(null);
+  const [chainValid, setChainValid] = useState(null);
+
+  useEffect(() => {
+    validateChain()
+      .then((r) => setChainValid(r.data.valid))
+      .catch(() => setChainValid(false));
+  }, [page]);
 
   const navigate = (p, e = null) => {
     setPage(p);
@@ -37,13 +45,17 @@ export default function App() {
   };
 
   return (
-    <div className="app-layout">
-      <aside className="sidebar">
-        <div className="sidebar-logo">
-          <h1>🍷 Wine Chain</h1>
-          <span>Blockchain Inventory</span>
+    <div>
+      <nav className="topnav">
+        <div className="topnav-logo">
+          <div className="topnav-logo-icon">🍷</div>
+          <div>
+            <h1>Wine Chain</h1>
+            <span>Blockchain Inventory</span>
+          </div>
         </div>
-        <nav className="sidebar-nav">
+
+        <div className="topnav-links">
           {NAV.map((n) => (
             <button
               key={n.id}
@@ -54,11 +66,30 @@ export default function App() {
               <span>{n.label}</span>
             </button>
           ))}
-        </nav>
-        <div className="sidebar-footer">MongoDB · Node.js · React</div>
-      </aside>
+        </div>
+
+        <div className="topnav-right">
+          <div
+            className={`chain-badge ${chainValid === false ? "invalid" : ""}`}
+          >
+            <span>{chainValid === null ? "⏳" : chainValid ? "●" : "●"}</span>
+            {chainValid === null
+              ? "Checking chain"
+              : chainValid
+                ? "Chain valid"
+                : "Chain issue"}
+          </div>
+        </div>
+      </nav>
+
       <main className="main-content">{pages[page]}</main>
-      <ToastContainer position="bottom-right" autoClose={3000} hideProgressBar={false} />
+
+      <ToastContainer
+        position="bottom-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        toastStyle={{ borderRadius: 10, fontSize: 13 }}
+      />
     </div>
   );
 }
