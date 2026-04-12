@@ -1,0 +1,37 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Start Backend",
+      "type": "shell",
+      "command": "npm run dev",
+      "options": { "cwd": "${workspaceFolder}/backend" },
+      "group": "build",
+      "presentation": { "panel": "new", "name": "Backend" },
+      "problemMatcher": []
+    },
+    {
+      "label": "Start Frontend",
+      "type": "shell",
+      "command": "npm start",
+      "options": { "cwd": "${workspaceFolder}/frontend" },
+      "group": "build",
+      "presentation": { "panel": "new", "name": "Frontend" },
+      "problemMatcher": []
+    },
+    {
+      "label": "Start Full Stack",
+      "dependsOn": ["Start Backend", "Start Frontend"],
+      "group": { "kind": "build", "isDefault": true },
+      "problemMatcher": []
+    },
+    {
+      "label": "Install All Dependencies",
+      "type": "shell",
+      "command": "npm run install:all",
+      "options": { "cwd": "${workspaceFolder}" },
+      "presentation": { "panel": "new", "name": "Install" },
+      "problemMatcher": []
+    }
+  ]
+}
