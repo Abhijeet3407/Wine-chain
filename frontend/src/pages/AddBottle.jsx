@@ -8,6 +8,8 @@ export default function AddBottle({ onNavigate }) {
   const [form, setForm] = useState(INITIAL);
   const [loading, setLoading] = useState(false);
   const [lastBlock, setLastBlock] = useState(null);
+  const [image, setImage] = useState(null);
+  const [preview, setPreview] = useState(null);
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
@@ -17,10 +19,18 @@ export default function AddBottle({ onNavigate }) {
     }
     setLoading(true);
     try {
-      const res = await addBottle({ ...form, vintage: Number(form.vintage), quantity: Number(form.quantity), purchasePrice: Number(form.purchasePrice) || 0 });
+      const formData = new FormData();
+      Object.keys(form).forEach(k => formData.append(k, form[k]));
+      formData.set("vintage", Number(form.vintage));
+      formData.set("quantity", Number(form.quantity));
+      formData.set("purchasePrice", Number(form.purchasePrice) || 0);
+      if (image) formData.append("image", image);
+      const res = await addBottle(formData);
       setLastBlock(res.data.block);
       toast.success(`${res.data.data.bottleId} registered on Block #${res.data.block.index}`);
       setForm(INITIAL);
+      setImage(null);
+      setPreview(null);
     } catch (e) {
       toast.error(e.response?.data?.error || "Registration failed");
     } finally {
@@ -49,10 +59,18 @@ export default function AddBottle({ onNavigate }) {
           <div className="form-group"><label>Quantity</label><input type="number" value={form.quantity} onChange={e => set("quantity", e.target.value)} min="1" /></div>
           <div className="form-group"><label>Purchase price (£)</label><input type="number" value={form.purchasePrice} onChange={e => set("purchasePrice", e.target.value)} placeholder="0.00" min="0" step="0.01" /></div>
           <div className="form-group full"><label>Description / notes</label><textarea rows={2} value={form.description} onChange={e => set("description", e.target.value)} placeholder="Optional tasting notes or details…" /></div>
+          <div className="form-group full">
+            <label>Bottle image (optional)</label>
+            <input type="file" accept="image/*" onChange={e => {
+              setImage(e.target.files[0]);
+              setPreview(URL.createObjectURL(e.target.files[0]));
+            }} />
+            {preview && <img src={preview} alt="preview" style={{ marginTop: 8, width: 120, height: 120, objectFit: "cover", borderRadius: 8, border: "1px solid #ddd" }} />}
+          </div>
         </div>
         <div className="btn-group">
           <button className="btn btn-primary" onClick={handleSubmit} disabled={loading}>{loading ? "Mining block…" : "Register on blockchain"}</button>
-          <button className="btn" onClick={() => setForm(INITIAL)}>Clear</button>
+          <button className="btn" onClick={() => { setForm(INITIAL); setImage(null); setPreview(null); }}>Clear</button>
         </div>
       </div>
 

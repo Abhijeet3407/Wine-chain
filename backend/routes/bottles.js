@@ -3,6 +3,7 @@ const router = express.Router();
 const Bottle = require("../models/Bottle");
 const Block = require("../models/Block");
 const { Block: ChainBlock, Blockchain } = require("../blockchain/chain");
+const { upload } = require("../cloudinary");
 
 const blockchain = new Blockchain();
 
@@ -44,12 +45,13 @@ router.get("/", async (req, res) => {
   try {
     const { search, type, status, page = 1, limit = 20 } = req.query;
     const query = {};
-    if (search) query.$or = [
-      { name: { $regex: search, $options: "i" } },
-      { producer: { $regex: search, $options: "i" } },
-      { region: { $regex: search, $options: "i" } },
-      { bottleId: { $regex: search, $options: "i" } },
-    ];
+    if (search)
+      query.$or = [
+        { name: { $regex: search, $options: "i" } },
+        { producer: { $regex: search, $options: "i" } },
+        { region: { $regex: search, $options: "i" } },
+        { bottleId: { $regex: search, $options: "i" } },
+      ];
     if (type) query.type = type;
     if (status) query.status = status;
 
@@ -59,7 +61,13 @@ router.get("/", async (req, res) => {
       .skip((page - 1) * limit)
       .limit(Number(limit));
 
-    res.json({ success: true, data: bottles, total, page: Number(page), pages: Math.ceil(total / limit) });
+    res.json({
+      success: true,
+      data: bottles,
+      total,
+      page: Number(page),
+      pages: Math.ceil(total / limit),
+    });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
@@ -69,9 +77,15 @@ router.get("/", async (req, res) => {
 router.get("/:id", async (req, res) => {
   try {
     const bottle = await Bottle.findOne({
-      $or: [{ _id: req.params.id.match(/^[a-f\d]{24}$/i) ? req.params.id : null }, { bottleId: req.params.id }],
+      $or: [
+        { _id: req.params.id.match(/^[a-f\d]{24}$/i) ? req.params.id : null },
+        { bottleId: req.params.id },
+      ],
     });
-    if (!bottle) return res.status(404).json({ success: false, error: "Bottle not found" });
+    if (!bottle)
+      return res
+        .status(404)
+        .json({ success: false, error: "Bottle not found" });
     res.json({ success: true, data: bottle });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
@@ -79,15 +93,39 @@ router.get("/:id", async (req, res) => {
 });
 
 // POST register new bottle
-router.post("/", async (req, res) => {
+router.post("/", upload.single("image"), async (req, res) => {
   try {
-    const { name, vintage, type, region, producer, quantity, purchasePrice, currentOwner, description } = req.body;
+    const {
+      name,
+      vintage,
+      type,
+      region,
+      producer,
+      quantity,
+      purchasePrice,
+      currentOwner,
+      description,
+    } = req.body;
 
     if (!name || !vintage || !type || !region || !producer || !currentOwner) {
-      return res.status(400).json({ success: false, error: "Missing required fields" });
+      return res
+        .status(400)
+        .json({ success: false, error: "Missing required fields" });
     }
 
-    const bottle = new Bottle({ name, vintage, type, region, producer, quantity: quantity || 1, purchasePrice: purchasePrice || 0, currentOwner, description });
+    const imageUrl = req.file ? req.file.path : "";
+    const bottle = new Bottle({
+      name,
+      vintage,
+      type,
+      region,
+      producer,
+      quantity: quantity || 1,
+      purchasePrice: purchasePrice || 0,
+      currentOwner,
+      description,
+      imageUrl,
+    });
     await bottle.save();
 
     const blockData = {
@@ -119,12 +157,21 @@ router.post("/", async (req, res) => {
 router.put("/:id/transfer", async (req, res) => {
   try {
     const { toOwner, price, notes } = req.body;
-    if (!toOwner) return res.status(400).json({ success: false, error: "New owner is required" });
+    if (!toOwner)
+      return res
+        .status(400)
+        .json({ success: false, error: "New owner is required" });
 
     const bottle = await Bottle.findOne({
-      $or: [{ _id: req.params.id.match(/^[a-f\d]{24}$/i) ? req.params.id : null }, { bottleId: req.params.id }],
+      $or: [
+        { _id: req.params.id.match(/^[a-f\d]{24}$/i) ? req.params.id : null },
+        { bottleId: req.params.id },
+      ],
     });
-    if (!bottle) return res.status(404).json({ success: false, error: "Bottle not found" });
+    if (!bottle)
+      return res
+        .status(404)
+        .json({ success: false, error: "Bottle not found" });
 
     const blockData = {
       type: "TRANSFER",
@@ -168,9 +215,18 @@ router.get("/:id/verify", async (req, res) => {
         { latestBlockHash: req.params.id },
       ],
     });
-    if (!bottle) return res.status(404).json({ success: false, verified: false, error: "Bottle not found on chain" });
+    if (!bottle)
+      return res
+        .status(404)
+        .json({
+          success: false,
+          verified: false,
+          error: "Bottle not found on chain",
+        });
 
-    const blocks = await Block.find({ index: { $in: bottle.blockIndices } }).sort({ index: 1 });
+    const blocks = await Block.find({
+      index: { $in: bottle.blockIndices },
+    }).sort({ index: 1 });
     const allBlocks = await Block.find().sort({ index: 1 });
 
     const isValid = allBlocks.length <= 1 || blockchain.isChainValid(allBlocks);
@@ -193,9 +249,15 @@ router.get("/:id/verify", async (req, res) => {
 router.delete("/:id", async (req, res) => {
   try {
     const bottle = await Bottle.findOneAndDelete({
-      $or: [{ _id: req.params.id.match(/^[a-f\d]{24}$/i) ? req.params.id : null }, { bottleId: req.params.id }],
+      $or: [
+        { _id: req.params.id.match(/^[a-f\d]{24}$/i) ? req.params.id : null },
+        { bottleId: req.params.id },
+      ],
     });
-    if (!bottle) return res.status(404).json({ success: false, error: "Bottle not found" });
+    if (!bottle)
+      return res
+        .status(404)
+        .json({ success: false, error: "Bottle not found" });
     res.json({ success: true, message: "Bottle removed from inventory" });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });

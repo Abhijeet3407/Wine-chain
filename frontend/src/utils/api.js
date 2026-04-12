@@ -6,9 +6,10 @@ const API = axios.create({
 
 export const getBottles = (params) => API.get("/bottles", { params });
 export const getBottle = (id) => API.get(`/bottles/${id}`);
-export const addBottle = (data) => API.post("/bottles", data);
-export const transferBottle = (id, data) =>
-  API.put(`/bottles/${id}/transfer`, data);
+export const addBottle = (data) => API.post("/bottles", data, {
+  headers: { "Content-Type": "multipart/form-data" }
+});
+export const transferBottle = (id, data) => API.put(`/bottles/${id}/transfer`, data);
 export const verifyBottle = (id) => API.get(`/bottles/${id}/verify`);
 export const deleteBottle = (id) => API.delete(`/bottles/${id}`);
 

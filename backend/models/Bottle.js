@@ -25,6 +25,7 @@ const bottleSchema = new mongoose.Schema(
     purchasePrice: { type: Number, default: 0 },
     currentOwner: { type: String, required: true, trim: true },
     description: { type: String, default: "" },
+    imageUrl: { type: String, default: "" },
     status: {
       type: String,
       enum: ["Active", "Transferred", "Consumed", "Lost"],
@@ -35,7 +36,7 @@ const bottleSchema = new mongoose.Schema(
     transferHistory: [transferSchema],
     blockIndices: [{ type: Number }],
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 bottleSchema.pre("save", async function (next) {
