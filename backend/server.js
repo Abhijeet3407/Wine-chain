@@ -7,7 +7,16 @@ const app = express();
 
 app.use(
   cors({
-    origin: ["http://localhost:3000", "https://wine-chain.vercel.app"],
+    origin: function (origin, callback) {
+      if (!origin) return callback(null, true);
+      if (
+        origin === "http://localhost:3000" ||
+        origin.endsWith(".vercel.app")
+      ) {
+        return callback(null, true);
+      }
+      callback(new Error("Not allowed by CORS"));
+    },
     credentials: true,
   }),
 );
