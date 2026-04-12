@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const API = axios.create({
-  baseURL: "https://wine-chain-backend.onrender.com",
+  baseURL: "https://wine-chain-backend.onrender.com/api",
 });
 
 export const getBottles = (params) => API.get("/bottles", { params });
