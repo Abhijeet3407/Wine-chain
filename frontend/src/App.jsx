@@ -9,6 +9,7 @@ import AddBottle from "./pages/AddBottle";
 import Transfer from "./pages/Transfer";
 import Verify from "./pages/Verify";
 import Ledger from "./pages/Ledger";
+import Marketplace from "./pages/Marketplace";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import Verify2FA from "./pages/Verify2FA";
@@ -18,8 +19,8 @@ const NAV = [
   { id: "home", icon: "🏠", label: "Home" },
   { id: "dashboard", icon: "📊", label: "Dashboard" },
   { id: "inventory", icon: "🍷", label: "Inventory" },
+  { id: "marketplace", icon: "🏪", label: "Marketplace" },
   { id: "add", icon: "+", label: "Register" },
-  { id: "transfer", icon: "⇄", label: "Transfer" },
   { id: "verify", icon: "✓", label: "Verify" },
   { id: "ledger", icon: "⛓", label: "Ledger" },
 ];
@@ -101,7 +102,8 @@ export default function App() {
   const pages = {
     home: <Home onNavigate={navigate} />,
     dashboard: <Dashboard onNavigate={navigate} />,
-    inventory: <Inventory onNavigate={navigate} />,
+    inventory: <Inventory onNavigate={navigate} user={user} />,
+    marketplace: <Marketplace onNavigate={navigate} user={user} token={token} />,
     add: <AddBottle onNavigate={navigate} />,
     transfer: <Transfer preselect={extra} onNavigate={navigate} />,
     verify: <Verify preselect={extra} />,
