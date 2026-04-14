@@ -1,33 +1,88 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import axios from "axios";
 import { toast } from "react-toastify";
 
 export default function Login({ onNavigate, onLogin }) {
   const [form, setForm] = useState({ email: "", password: "" });
   const [loading, setLoading] = useState(false);
+  const [wakingUp, setWakingUp] = useState(false);
+  const [countdown, setCountdown] = useState(0);
+  const retryTimer = useRef(null);
+  const countTimer = useRef(null);
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
+
+  // Clean up timers on unmount
+  useEffect(() => () => {
+    clearTimeout(retryTimer.current);
+    clearInterval(countTimer.current);
+  }, []);
+
+  const attemptLogin = async (email, password) => {
+    const res = await axios.post("/api/auth/login", { email, password });
+    toast.success("Verification code sent to your email!");
+    onNavigate("verify2fa", res.data.userId);
+  };
+
+  const scheduleRetry = (email, password, attempt) => {
+    if (attempt > 7) {
+      setWakingUp(false);
+      setLoading(false);
+      toast.error("Server took too long to wake up. Please try again.");
+      return;
+    }
+
+    const WAIT = 10; // seconds between retries
+    setCountdown(WAIT);
+    countTimer.current = setInterval(() => {
+      setCountdown((c) => {
+        if (c <= 1) clearInterval(countTimer.current);
+        return c - 1;
+      });
+    }, 1000);
+
+    retryTimer.current = setTimeout(async () => {
+      try {
+        await attemptLogin(email, password);
+        setWakingUp(false);
+        setLoading(false);
+      } catch (err) {
+        const s = err.response?.status;
+        if (!err.response || s === 502 || s === 503 || s === 504) {
+          scheduleRetry(email, password, attempt + 1);
+        } else {
+          setWakingUp(false);
+          setLoading(false);
+          toast.error(err.response?.data?.error || "Login failed");
+        }
+      }
+    }, WAIT * 1000);
+  };
 
   const handleSubmit = async () => {
     if (!form.email || !form.password) {
       toast.error("Please enter email and password");
       return;
     }
+    // Cancel any in-progress retry
+    clearTimeout(retryTimer.current);
+    clearInterval(countTimer.current);
     setLoading(true);
+    setWakingUp(false);
+
     try {
-      const res = await axios.post(
-        "/api/auth/login",
-        {
-          email: form.email,
-          password: form.password,
-        },
-      );
-      toast.success("Verification code sent to your email!");
-      onNavigate("verify2fa", res.data.userId);
-    } catch (e) {
-      toast.error(e.response?.data?.error || "Login failed");
-      setForm({ email: "", password: "" });
-    } finally {
+      await attemptLogin(form.email, form.password);
       setLoading(false);
+    } catch (e) {
+      const status = e.response?.status;
+      if (!e.response || status === 502 || status === 503 || status === 504) {
+        // Render free tier is waking up from sleep — retry automatically
+        setWakingUp(true);
+        toast.info("Server is starting up (free tier). Retrying automatically…");
+        scheduleRetry(form.email, form.password, 1);
+      } else {
+        setLoading(false);
+        toast.error(e.response?.data?.error || "Login failed");
+      }
     }
   };
 
@@ -83,6 +138,29 @@ export default function Login({ onNavigate, onLogin }) {
           </p>
         </div>
 
+        {/* Waking-up banner */}
+        {wakingUp && (
+          <div
+            style={{
+              background: "#fff8e1",
+              border: "1px solid #ffe082",
+              borderRadius: 8,
+              padding: "10px 14px",
+              marginBottom: 16,
+              fontSize: 13,
+              color: "#795548",
+              textAlign: "center",
+            }}
+          >
+            ⏳ Server is waking up (free tier).{" "}
+            {countdown > 0 ? (
+              <>Retrying in <strong>{countdown}s</strong>…</>
+            ) : (
+              "Retrying…"
+            )}
+          </div>
+        )}
+
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           <div className="form-group">
             <label>Email address</label>
@@ -92,6 +170,7 @@ export default function Login({ onNavigate, onLogin }) {
               onChange={(e) => set("email", e.target.value)}
               placeholder="your@email.com"
               onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
+              disabled={loading}
             />
           </div>
           <div className="form-group">
@@ -102,6 +181,7 @@ export default function Login({ onNavigate, onLogin }) {
               onChange={(e) => set("password", e.target.value)}
               placeholder="Your password"
               onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
+              disabled={loading}
             />
           </div>
         </div>
@@ -117,15 +197,23 @@ export default function Login({ onNavigate, onLogin }) {
             fontSize: 14,
           }}
         >
-          {loading ? "Signing in…" : "Sign in →"}
+          {wakingUp
+            ? "Server starting up…"
+            : loading
+            ? "Signing in…"
+            : "Sign in →"}
         </button>
 
         <div style={{ textAlign: "center", marginTop: 16 }}>
           <p style={{ fontSize: 13, color: "#888" }}>
             Don't have an account?{" "}
             <span
-              onClick={() => onNavigate("signup")}
-              style={{ color: "#7b1c2e", fontWeight: 700, cursor: "pointer" }}
+              onClick={() => !loading && onNavigate("signup")}
+              style={{
+                color: "#7b1c2e",
+                fontWeight: 700,
+                cursor: loading ? "default" : "pointer",
+              }}
             >
               Sign up
             </span>

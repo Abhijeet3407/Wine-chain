@@ -40,8 +40,7 @@ export default function Signup({ onNavigate }) {
       toast.success("Account created! Please log in.");
       onNavigate("login");
     } catch (e) {
-      toast.error(e.response?.data?.error || "Signup failed");
-      setForm({ name: "", email: "", password: "", confirmPassword: "", phone: "" });
+      toast.error(e.response?.data?.error || "Signup failed. Please try again.");
     } finally {
       setLoading(false);
     }
