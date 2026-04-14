@@ -1,11 +1,18 @@
 const nodemailer = require("nodemailer");
 
+// Use explicit SMTP settings instead of service:"gmail" so it works on Render.
+// Port 587 + STARTTLS is not blocked by cloud providers (port 465 often is).
 const transporter = nodemailer.createTransport({
-  service: "gmail",
+  host: "smtp.gmail.com",
+  port: 587,
+  secure: false, // STARTTLS
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS,
   },
+  connectionTimeout: 10000,
+  greetingTimeout: 10000,
+  socketTimeout: 15000,
 });
 
 const send2FACode = async (email, name, code) => {

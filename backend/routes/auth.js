@@ -33,7 +33,10 @@ router.post("/signup", async (req, res) => {
         .json({ success: false, error: "Email already registered" });
     }
     const user = await User.create({ name, email, password, phone });
-    await sendWelcomeEmail(email, name);
+    // Welcome email is best-effort — don't fail signup if email is unavailable
+    sendWelcomeEmail(email, name).catch((e) =>
+      console.error("Welcome email failed:", e.message)
+    );
     res
       .status(201)
       .json({
@@ -62,7 +65,16 @@ router.post("/login", async (req, res) => {
     }
     const code = user.generate2FACode();
     await user.save();
-    await send2FACode(email, user.name, code);
+    try {
+      await send2FACode(email, user.name, code);
+    } catch (mailErr) {
+      console.error("2FA email failed:", mailErr.message);
+      return res.status(500).json({
+        success: false,
+        error:
+          "Could not send verification code. Please check your email address or try again in a moment.",
+      });
+    }
     res.json({
       success: true,
       message: "Verification code sent to your email",
