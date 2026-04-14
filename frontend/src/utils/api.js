@@ -18,3 +18,4 @@ export const validateChain = () => API.get("/chain/validate");
 export const getBlock = (hash) => API.get(`/chain/${hash}`);
 
 export const getStats = () => API.get("/stats");
+export const getAnalytics = () => API.get("/stats/analytics");

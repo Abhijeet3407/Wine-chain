@@ -28,4 +28,63 @@ router.get("/", async (req, res) => {
   }
 });
 
+router.get("/analytics", async (req, res) => {
+  try {
+    const [byType, byRegion, byProducer, monthlyData, mostValuable, summary] =
+      await Promise.all([
+        Bottle.aggregate([
+          { $group: { _id: "$type", count: { $sum: "$quantity" } } },
+          { $sort: { count: -1 } },
+        ]),
+        Bottle.aggregate([
+          { $group: { _id: "$region", count: { $sum: "$quantity" } } },
+          { $sort: { count: -1 } },
+          { $limit: 8 },
+        ]),
+        Bottle.aggregate([
+          { $group: { _id: "$producer", count: { $sum: 1 } } },
+          { $sort: { count: -1 } },
+          { $limit: 8 },
+        ]),
+        Bottle.aggregate([
+          {
+            $group: {
+              _id: { year: { $year: "$createdAt" }, month: { $month: "$createdAt" } },
+              bottles: { $sum: "$quantity" },
+              value: { $sum: { $multiply: ["$quantity", "$purchasePrice"] } },
+            },
+          },
+          { $sort: { "_id.year": 1, "_id.month": 1 } },
+        ]),
+        Bottle.findOne({ purchasePrice: { $gt: 0 } })
+          .sort({ purchasePrice: -1 })
+          .select("name purchasePrice vintage type"),
+        Bottle.aggregate([
+          {
+            $group: {
+              _id: null,
+              totalValue: { $sum: { $multiply: ["$quantity", "$purchasePrice"] } },
+              totalBottles: { $sum: "$quantity" },
+              uniqueWines: { $sum: 1 },
+            },
+          },
+        ]),
+      ]);
+
+    res.json({
+      success: true,
+      data: {
+        byType,
+        byRegion,
+        byProducer,
+        monthlyData,
+        mostValuable,
+        summary: summary[0] || { totalValue: 0, totalBottles: 0, uniqueWines: 0 },
+      },
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 module.exports = router;
