@@ -29,7 +29,7 @@ export default function Signup({ onNavigate }) {
     setLoading(true);
     try {
       await axios.post(
-        `${process.env.REACT_APP_API_URL || ""}/api/auth/signup`,
+        "/api/auth/signup",
         {
           name: form.name,
           email: form.email,
