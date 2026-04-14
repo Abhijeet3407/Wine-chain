@@ -27,6 +27,7 @@ app.use("/api/auth", require("./routes/auth"));
 app.use("/api/bottles", require("./routes/bottles"));
 app.use("/api/chain", require("./routes/chain"));
 app.use("/api/stats", require("./routes/stats"));
+app.use("/api/marketplace", require("./routes/marketplace"));
 
 app.get("/api/health", (req, res) =>
   res.json({ status: "ok", message: "Wine Chain API running" })
