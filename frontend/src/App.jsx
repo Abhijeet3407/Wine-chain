@@ -15,13 +15,13 @@ import Verify2FA from "./pages/Verify2FA";
 import { validateChain } from "./utils/api";
 
 const NAV = [
-  { id: "home", icon: "🏠", label: "Home" },
-  { id: "dashboard", icon: "📊", label: "Dashboard" },
-  { id: "inventory", icon: "🍷", label: "Inventory" },
-  { id: "marketplace", icon: "🏪", label: "Marketplace" },
+  { id: "home", icon: "⌂", label: "Home" },
+  { id: "dashboard", icon: "▦", label: "Dashboard" },
+  { id: "inventory", icon: "◈", label: "Inventory" },
+  { id: "marketplace", icon: "◇", label: "Marketplace" },
   { id: "add", icon: "+", label: "Register" },
   { id: "verify", icon: "✓", label: "Verify" },
-  { id: "ledger", icon: "⛓", label: "Ledger" },
+  { id: "ledger", icon: "≣", label: "Ledger" },
 ];
 
 export default function App() {
@@ -118,7 +118,7 @@ export default function App() {
           onClick={() => navigate("home")}
           style={{ cursor: "pointer" }}
         >
-          <div className="topnav-logo-icon">🍷</div>
+          <div className="topnav-logo-icon">W</div>
           <div>
             <h1>Wine Chain</h1>
             <span>Blockchain Inventory</span>
@@ -157,7 +157,7 @@ export default function App() {
               <div
                 className={`chain-badge ${chainValid === false ? "invalid" : ""}`}
               >
-                <span>{chainValid === null ? "⏳" : "●"}</span>
+                <span>{chainValid === null ? "○" : "●"}</span>
                 <span className="chain-badge-text">
                   {chainValid === null
                     ? "Checking"

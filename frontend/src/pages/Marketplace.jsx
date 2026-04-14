@@ -187,7 +187,7 @@ export default function Marketplace({ user, token, onNavigate }) {
         <div className="loading">Loading…</div>
       ) : listings.length === 0 ? (
         <div className="empty">
-          <div className="empty-icon">🏪</div>
+          <div className="empty-icon">◇</div>
           No bottles listed for sale
         </div>
       ) : (
@@ -242,10 +242,13 @@ export default function Marketplace({ user, token, onNavigate }) {
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
-                        fontSize: 52,
+                        fontSize: 32,
+                        color: "#c9bfaf",
+                        fontWeight: 600,
+                        letterSpacing: 2,
                       }}
                     >
-                      🍷
+                      ◆
                     </div>
                   )}
                   {/* Blockchain Verified badge */}
@@ -265,7 +268,7 @@ export default function Marketplace({ user, token, onNavigate }) {
                       gap: 4,
                     }}
                   >
-                    ⛓ Blockchain Verified
+                    ◆ Verified
                   </div>
                   {/* Status badge for Pending */}
                   {listing.status === "Pending" && (
@@ -482,11 +485,13 @@ export default function Marketplace({ user, token, onNavigate }) {
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    fontSize: 28,
+                    fontSize: 20,
+                    color: "#b8a898",
+                    fontWeight: 600,
                     flexShrink: 0,
                   }}
                 >
-                  🍷
+                  ◆
                 </div>
               )}
               <div style={{ flex: 1, minWidth: 0 }}>

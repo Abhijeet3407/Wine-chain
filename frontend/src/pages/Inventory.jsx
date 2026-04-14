@@ -220,7 +220,7 @@ export default function Inventory({ onNavigate, user }) {
             onClick={() => exportToPDF(bottles)}
             disabled={bottles.length === 0}
           >
-            📄 Export PDF
+            Export PDF
           </button>
           <button className="btn btn-primary" onClick={() => onNavigate("add")}>
             + Register bottle
@@ -274,8 +274,7 @@ export default function Inventory({ onNavigate, user }) {
           <div className="loading">Loading…</div>
         ) : bottles.length === 0 ? (
           <div className="empty">
-            <div className="empty-icon">🍷</div>No bottles found. Register your
-            first bottle!
+            <div className="empty-icon">◆</div>No bottles registered yet. Add your first bottle to the blockchain.
           </div>
         ) : (
           <div className="table-wrap">
@@ -329,10 +328,12 @@ export default function Inventory({ onNavigate, user }) {
                               display: "flex",
                               alignItems: "center",
                               justifyContent: "center",
-                              fontSize: 18,
+                              fontSize: 14,
+                              color: "#bbb",
+                              fontWeight: 600,
                             }}
                           >
-                            🍷
+                            ◆
                           </div>
                         )}
                       </td>

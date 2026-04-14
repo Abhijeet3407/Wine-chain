@@ -57,11 +57,15 @@ export default function Verify2FA({ userId, prefillCode, onLogin, onNavigate }) 
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              fontSize: 24,
+              fontSize: 22,
+              fontWeight: 800,
+              color: "#fff",
+              letterSpacing: "-1px",
+              fontFamily: "Georgia, serif",
               margin: "0 auto 12px",
             }}
           >
-            🔐
+            W
           </div>
           <h1 style={{ fontSize: 22, fontWeight: 800, color: "#1a1a1a", letterSpacing: "-0.5px" }}>
             {emailFailed ? "Your login code" : "Check your email"}
@@ -150,7 +154,7 @@ export default function Verify2FA({ userId, prefillCode, onLogin, onNavigate }) 
             textAlign: "center",
           }}
         >
-          ⏱ Code expires in <strong>10 minutes</strong>
+          Code expires in <strong>10 minutes</strong>
         </div>
       </div>
     </div>

@@ -37,7 +37,7 @@ export default function Ledger() {
       </div>
 
       {loading ? <div className="loading">Loading chain…</div> : blocks.length === 0 ? (
-        <div className="card"><div className="empty"><div className="empty-icon">⛓️</div>No blocks yet. Register a bottle to create the genesis block.</div></div>
+        <div className="card"><div className="empty"><div className="empty-icon">≣</div>No blocks yet. Register a bottle to create the genesis block.</div></div>
       ) : (
         <>
           {blocks.map(block => (

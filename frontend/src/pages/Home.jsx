@@ -23,7 +23,7 @@ export default function Home({ onNavigate }) {
             padding: "6px 16px", fontSize: 12, color: "rgba(255,255,255,0.8)",
             marginBottom: 24, letterSpacing: "0.08em", fontWeight: 600
           }}>
-            ⛓ BLOCKCHAIN POWERED
+            ◆ BLOCKCHAIN SECURED
           </div>
           <h1 style={{
             fontSize: "clamp(34px, 8vw, 56px)", fontWeight: 800, color: "#fff",
@@ -62,10 +62,10 @@ export default function Home({ onNavigate }) {
           marginTop: 60, flexWrap: "wrap"
         }}>
           {[
-            { label: "SHA-256 Blockchain", icon: "🔐" },
-            { label: "MongoDB Atlas Cloud", icon: "☁️" },
-            { label: "QR Code Per Bottle", icon: "📱" },
-            { label: "PDF Export", icon: "📄" },
+            { label: "SHA-256 Blockchain", icon: "◆" },
+            { label: "MongoDB Atlas Cloud", icon: "●" },
+            { label: "QR Code Per Bottle", icon: "▣" },
+            { label: "PDF Export", icon: "▤" },
           ].map(f => (
             <div key={f.label} style={{
               background: "rgba(255,255,255,0.08)",
@@ -94,37 +94,37 @@ export default function Home({ onNavigate }) {
         <div className="home-features-grid">
           {[
             {
-              icon: "⛓",
+              icon: "◆",
               title: "Immutable Blockchain",
               desc: "Every registration and transfer is recorded as a SHA-256 proof-of-work block. Tampering is mathematically impossible.",
               color: "#f0f0ff", accent: "#4040cc"
             },
             {
-              icon: "🔍",
+              icon: "○",
               title: "Instant Verification",
               desc: "Scan a QR code or enter a bottle ID to instantly verify its full provenance and ownership history.",
               color: "#f0fff4", accent: "#1e7a40"
             },
             {
-              icon: "🔄",
+              icon: "→",
               title: "Ownership Transfer",
               desc: "Transfer ownership between parties with full audit trail. Every transfer is permanently recorded on chain.",
               color: "#fff8f0", accent: "#c05a00"
             },
             {
-              icon: "📱",
+              icon: "▣",
               title: "QR Codes",
               desc: "Generate a unique QR code for every bottle that links directly to its blockchain verification page.",
               color: "#f0f8ff", accent: "#1a5fa0"
             },
             {
-              icon: "📄",
+              icon: "▤",
               title: "PDF Reports",
               desc: "Export your entire inventory as a professional PDF report with full details and portfolio value.",
               color: "#fff0f5", accent: "#a0305a"
             },
             {
-              icon: "☁️",
+              icon: "●",
               title: "Cloud Storage",
               desc: "All data is securely stored on MongoDB Atlas with automatic backups and 99.9% uptime.",
               color: "#f5f0ff", accent: "#6030a0"
@@ -163,10 +163,10 @@ export default function Home({ onNavigate }) {
           </div>
           <div className="home-steps-grid">
             {[
-              { step: "01", title: "Register", desc: "Add your bottle with details and photo. A blockchain block is mined.", icon: "🍾" },
-              { step: "02", title: "Store", desc: "Data is saved to MongoDB Atlas cloud with full blockchain record.", icon: "☁️" },
-              { step: "03", title: "Transfer", desc: "Record ownership changes permanently on the blockchain.", icon: "🤝" },
-              { step: "04", title: "Verify", desc: "Anyone can verify authenticity using the bottle ID or QR code.", icon: "✅" },
+              { step: "01", title: "Register", desc: "Add your bottle with details and photo. A blockchain block is mined.", icon: "◆" },
+              { step: "02", title: "Store", desc: "Data is saved to MongoDB Atlas cloud with full blockchain record.", icon: "●" },
+              { step: "03", title: "Transfer", desc: "Record ownership changes permanently on the blockchain.", icon: "→" },
+              { step: "04", title: "Verify", desc: "Anyone can verify authenticity using the bottle ID or QR code.", icon: "✓" },
             ].map(s => (
               <div key={s.step} style={{
                 background: "#fff", borderRadius: 14,
@@ -217,7 +217,7 @@ export default function Home({ onNavigate }) {
         background: "#0f0f0f", padding: "24px 32px",
         textAlign: "center", fontSize: 12, color: "#555"
       }}>
-        Wine Chain — Blockchain Wine Inventory System · Built with React, Node.js, MongoDB & SHA-256 PoW
+        Wine Chain — Blockchain Wine Inventory System &nbsp;·&nbsp; React · Node.js · MongoDB · SHA-256 PoW
       </div>
     </div>
   );

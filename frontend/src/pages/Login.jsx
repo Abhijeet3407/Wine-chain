@@ -131,11 +131,15 @@ export default function Login({ onNavigate, onLogin }) {
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              fontSize: 24,
+              fontSize: 22,
+              fontWeight: 800,
+              color: "#fff",
+              letterSpacing: "-1px",
+              fontFamily: "Georgia, serif",
               margin: "0 auto 12px",
             }}
           >
-            🍷
+            W
           </div>
           <h1
             style={{
@@ -245,8 +249,8 @@ export default function Login({ onNavigate, onLogin }) {
             textAlign: "center",
           }}
         >
-          🔐 After login you will receive a <strong>6-digit code</strong> to
-          your email for 2FA verification
+          A <strong>6-digit verification code</strong> will be sent to your
+          email address each time you sign in
         </div>
       </div>
     </div>
