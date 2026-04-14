@@ -6,7 +6,6 @@ import Home from "./pages/Home";
 import Dashboard from "./pages/Dashboard";
 import Inventory from "./pages/Inventory";
 import AddBottle from "./pages/AddBottle";
-import Transfer from "./pages/Transfer";
 import Verify from "./pages/Verify";
 import Ledger from "./pages/Ledger";
 import Marketplace from "./pages/Marketplace";
@@ -105,7 +104,6 @@ export default function App() {
     inventory: <Inventory onNavigate={navigate} user={user} />,
     marketplace: <Marketplace onNavigate={navigate} user={user} token={token} />,
     add: <AddBottle onNavigate={navigate} />,
-    transfer: <Transfer preselect={extra} onNavigate={navigate} />,
     verify: <Verify preselect={extra} />,
     ledger: <Ledger />,
     login: <Login onNavigate={navigate} onLogin={handleLogin} />,
