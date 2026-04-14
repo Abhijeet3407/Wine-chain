@@ -12,7 +12,7 @@ const generateToken = (id) =>
 // POST /api/auth/signup
 router.post("/signup", async (req, res) => {
   try {
-    const { name, email, password, phone } = req.body;
+    const { name, email, password } = req.body;
     if (!name || !email || !password) {
       return res
         .status(400)
@@ -32,7 +32,7 @@ router.post("/signup", async (req, res) => {
         .status(400)
         .json({ success: false, error: "Email already registered" });
     }
-    const user = await User.create({ name, email, password, phone });
+    const user = await User.create({ name, email, password });
     // Welcome email is best-effort — don't fail signup if email is unavailable
     sendWelcomeEmail(email, name).catch((e) =>
       console.error("Welcome email failed:", e.message)
@@ -124,7 +124,6 @@ router.post("/verify-2fa", async (req, res) => {
         id: user._id,
         name: user.name,
         email: user.email,
-        phone: user.phone,
       },
     });
   } catch (err) {

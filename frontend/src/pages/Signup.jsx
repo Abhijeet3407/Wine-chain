@@ -8,13 +8,12 @@ export default function Signup({ onNavigate }) {
     email: "",
     password: "",
     confirmPassword: "",
-    phone: "",
   });
   const [loading, setLoading] = useState(false);
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
 
   const handleSubmit = async () => {
-    if (!form.name || !form.email || !form.password || !form.phone) {
+    if (!form.name || !form.email || !form.password) {
       toast.error("Please fill in all required fields");
       return;
     }
@@ -28,15 +27,11 @@ export default function Signup({ onNavigate }) {
     }
     setLoading(true);
     try {
-      await axios.post(
-        "/api/auth/signup",
-        {
-          name: form.name,
-          email: form.email,
-          password: form.password,
-          phone: form.phone,
-        },
-      );
+      await axios.post("/api/auth/signup", {
+        name: form.name,
+        email: form.email,
+        password: form.password,
+      });
       toast.success("Account created! Please log in.");
       onNavigate("login");
     } catch (e) {
@@ -105,6 +100,8 @@ export default function Signup({ onNavigate }) {
               value={form.name}
               onChange={(e) => set("name", e.target.value)}
               placeholder="Your full name"
+              onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
+              disabled={loading}
             />
           </div>
           <div className="form-group">
@@ -114,15 +111,8 @@ export default function Signup({ onNavigate }) {
               value={form.email}
               onChange={(e) => set("email", e.target.value)}
               placeholder="your@email.com"
-            />
-          </div>
-          <div className="form-group">
-            <label>Phone number *</label>
-            <input
-              type="tel"
-              value={form.phone}
-              onChange={(e) => set("phone", e.target.value)}
-              placeholder="+44 7700 000000"
+              onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
+              disabled={loading}
             />
           </div>
           <div className="form-group">
@@ -132,6 +122,8 @@ export default function Signup({ onNavigate }) {
               value={form.password}
               onChange={(e) => set("password", e.target.value)}
               placeholder="Min 6 characters"
+              onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
+              disabled={loading}
             />
           </div>
           <div className="form-group">
@@ -141,6 +133,8 @@ export default function Signup({ onNavigate }) {
               value={form.confirmPassword}
               onChange={(e) => set("confirmPassword", e.target.value)}
               placeholder="Repeat password"
+              onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
+              disabled={loading}
             />
           </div>
         </div>
@@ -169,12 +163,31 @@ export default function Signup({ onNavigate }) {
         >
           Already have an account?{" "}
           <span
-            onClick={() => onNavigate("login")}
-            style={{ color: "#7b1c2e", fontWeight: 700, cursor: "pointer" }}
+            onClick={() => !loading && onNavigate("login")}
+            style={{
+              color: "#7b1c2e",
+              fontWeight: 700,
+              cursor: loading ? "default" : "pointer",
+            }}
           >
             Log in
           </span>
         </p>
+
+        <div
+          style={{
+            marginTop: 20,
+            padding: "12px 14px",
+            background: "#f8f7f4",
+            borderRadius: 8,
+            fontSize: 12,
+            color: "#888",
+            textAlign: "center",
+          }}
+        >
+          🔐 After signing up you'll receive a <strong>6-digit code</strong> by
+          email each time you log in
+        </div>
       </div>
     </div>
   );

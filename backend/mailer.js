@@ -1,23 +1,15 @@
-const nodemailer = require("nodemailer");
+const { Resend } = require("resend");
 
-// Use explicit SMTP settings instead of service:"gmail" so it works on Render.
-// Port 587 + STARTTLS is not blocked by cloud providers (port 465 often is).
-const transporter = nodemailer.createTransport({
-  host: "smtp.gmail.com",
-  port: 587,
-  secure: false, // STARTTLS
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-  connectionTimeout: 10000,
-  greetingTimeout: 10000,
-  socketTimeout: 15000,
-});
+const resend = new Resend(process.env.RESEND_API_KEY);
+const FROM = process.env.RESEND_FROM_EMAIL || "Wine Chain <onboarding@resend.dev>";
 
-const send2FACode = async (email, name, code) => {
-  await transporter.sendMail({
-    from: `"Wine Chain" <${process.env.EMAIL_USER}>`,
+const sendMail = async ({ to, subject, html }) => {
+  const { error } = await resend.emails.send({ from: FROM, to, subject, html });
+  if (error) throw new Error(error.message || "Resend send failed");
+};
+
+const send2FACode = async (email, name, code) =>
+  sendMail({
     to: email,
     subject: "Your Wine Chain Login Code",
     html: `
@@ -39,42 +31,9 @@ const send2FACode = async (email, name, code) => {
       </div>
     `,
   });
-};
 
-const sendTransferNotification = async (
-  email,
-  name,
-  bottleName,
-  fromOwner,
-  toOwner,
-) => {
-  await transporter.sendMail({
-    from: `"Wine Chain" <${process.env.EMAIL_USER}>`,
-    to: email,
-    subject: `Wine Chain — Ownership Transfer Notification`,
-    html: `
-      <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 32px; background: #f8f7f4; border-radius: 12px;">
-        <div style="text-align: center; margin-bottom: 24px;">
-          <h1 style="color: #7b1c2e; font-size: 28px; margin: 0;">🍷 Wine Chain</h1>
-        </div>
-        <div style="background: #fff; border-radius: 12px; padding: 28px; border: 1px solid #ece9e2;">
-          <h2 style="font-size: 18px; color: #1a1a1a; margin-bottom: 8px;">Transfer Recorded</h2>
-          <p style="color: #555; font-size: 14px; margin-bottom: 20px;">Hello ${name}, a bottle transfer has been recorded on the blockchain.</p>
-          <table style="width: 100%; font-size: 13px; border-collapse: collapse;">
-            <tr><td style="padding: 8px 0; color: #888;">Bottle</td><td style="padding: 8px 0; font-weight: bold;">${bottleName}</td></tr>
-            <tr><td style="padding: 8px 0; color: #888;">From</td><td style="padding: 8px 0;">${fromOwner}</td></tr>
-            <tr><td style="padding: 8px 0; color: #888;">To</td><td style="padding: 8px 0;">${toOwner}</td></tr>
-          </table>
-        </div>
-        <p style="color: #ccc; font-size: 11px; text-align: center; margin-top: 20px;">Wine Chain · Blockchain Wine Inventory System</p>
-      </div>
-    `,
-  });
-};
-
-const sendWelcomeEmail = async (email, name) => {
-  await transporter.sendMail({
-    from: `"Wine Chain" <${process.env.EMAIL_USER}>`,
+const sendWelcomeEmail = async (email, name) =>
+  sendMail({
     to: email,
     subject: "Welcome to Wine Chain!",
     html: `
@@ -96,17 +55,32 @@ const sendWelcomeEmail = async (email, name) => {
       </div>
     `,
   });
-};
 
-const sendBuyNowRequestToSeller = async (
-  sellerEmail,
-  sellerName,
-  buyerName,
-  buyerEmail,
-  bottle
-) => {
-  await transporter.sendMail({
-    from: `"Wine Chain" <${process.env.EMAIL_USER}>`,
+const sendTransferNotification = async (email, name, bottleName, fromOwner, toOwner) =>
+  sendMail({
+    to: email,
+    subject: "Wine Chain — Ownership Transfer Notification",
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 32px; background: #f8f7f4; border-radius: 12px;">
+        <div style="text-align: center; margin-bottom: 24px;">
+          <h1 style="color: #7b1c2e; font-size: 28px; margin: 0;">🍷 Wine Chain</h1>
+        </div>
+        <div style="background: #fff; border-radius: 12px; padding: 28px; border: 1px solid #ece9e2;">
+          <h2 style="font-size: 18px; color: #1a1a1a; margin-bottom: 8px;">Transfer Recorded</h2>
+          <p style="color: #555; font-size: 14px; margin-bottom: 20px;">Hello ${name}, a bottle transfer has been recorded on the blockchain.</p>
+          <table style="width: 100%; font-size: 13px; border-collapse: collapse;">
+            <tr><td style="padding: 8px 0; color: #888;">Bottle</td><td style="padding: 8px 0; font-weight: bold;">${bottleName}</td></tr>
+            <tr><td style="padding: 8px 0; color: #888;">From</td><td style="padding: 8px 0;">${fromOwner}</td></tr>
+            <tr><td style="padding: 8px 0; color: #888;">To</td><td style="padding: 8px 0;">${toOwner}</td></tr>
+          </table>
+        </div>
+        <p style="color: #ccc; font-size: 11px; text-align: center; margin-top: 20px;">Wine Chain · Blockchain Wine Inventory System</p>
+      </div>
+    `,
+  });
+
+const sendBuyNowRequestToSeller = async (sellerEmail, sellerName, buyerName, buyerEmail, bottle) =>
+  sendMail({
     to: sellerEmail,
     subject: "New Purchase Request on Wine Chain",
     html: `
@@ -129,19 +103,9 @@ const sendBuyNowRequestToSeller = async (
       </div>
     `,
   });
-};
 
-const sendOfferToSeller = async (
-  sellerEmail,
-  sellerName,
-  buyerName,
-  buyerEmail,
-  offerPrice,
-  message,
-  bottle
-) => {
-  await transporter.sendMail({
-    from: `"Wine Chain" <${process.env.EMAIL_USER}>`,
+const sendOfferToSeller = async (sellerEmail, sellerName, buyerName, buyerEmail, offerPrice, message, bottle) =>
+  sendMail({
     to: sellerEmail,
     subject: "New Offer on Wine Chain",
     html: `
@@ -166,13 +130,11 @@ const sendOfferToSeller = async (
       </div>
     `,
   });
-};
 
-const sendOfferAcceptedToBuyer = async (buyerEmail, buyerName, bottle, price) => {
-  await transporter.sendMail({
-    from: `"Wine Chain" <${process.env.EMAIL_USER}>`,
+const sendOfferAcceptedToBuyer = async (buyerEmail, buyerName, bottle, price) =>
+  sendMail({
     to: buyerEmail,
-    subject: "Your Offer Was Accepted",
+    subject: "Your Offer Was Accepted — Wine Chain",
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 32px; background: #f8f7f4; border-radius: 12px;">
         <div style="text-align: center; margin-bottom: 24px;">
@@ -197,11 +159,9 @@ const sendOfferAcceptedToBuyer = async (buyerEmail, buyerName, bottle, price) =>
       </div>
     `,
   });
-};
 
-const sendOfferRejectedToBuyer = async (buyerEmail, buyerName, bottleName, price) => {
-  await transporter.sendMail({
-    from: `"Wine Chain" <${process.env.EMAIL_USER}>`,
+const sendOfferRejectedToBuyer = async (buyerEmail, buyerName, bottleName, price) =>
+  sendMail({
     to: buyerEmail,
     subject: "Offer Update from Wine Chain",
     html: `
@@ -224,19 +184,11 @@ const sendOfferRejectedToBuyer = async (buyerEmail, buyerName, bottleName, price
       </div>
     `,
   });
-};
 
-const sendSaleConfirmedToSeller = async (
-  sellerEmail,
-  sellerName,
-  buyerName,
-  bottle,
-  price
-) => {
-  await transporter.sendMail({
-    from: `"Wine Chain" <${process.env.EMAIL_USER}>`,
+const sendSaleConfirmedToSeller = async (sellerEmail, sellerName, buyerName, bottle, price) =>
+  sendMail({
     to: sellerEmail,
-    subject: "Sale Confirmed on Wine Chain",
+    subject: "Sale Confirmed — Wine Chain",
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 32px; background: #f8f7f4; border-radius: 12px;">
         <div style="text-align: center; margin-bottom: 24px;">
@@ -258,13 +210,11 @@ const sendSaleConfirmedToSeller = async (
       </div>
     `,
   });
-};
 
-const sendSaleConfirmedToBuyer = async (buyerEmail, buyerName, bottle, price) => {
-  await transporter.sendMail({
-    from: `"Wine Chain" <${process.env.EMAIL_USER}>`,
+const sendSaleConfirmedToBuyer = async (buyerEmail, buyerName, bottle, price) =>
+  sendMail({
     to: buyerEmail,
-    subject: "Purchase Confirmed on Wine Chain",
+    subject: "Purchase Confirmed — Wine Chain",
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 32px; background: #f8f7f4; border-radius: 12px;">
         <div style="text-align: center; margin-bottom: 24px;">
@@ -289,7 +239,6 @@ const sendSaleConfirmedToBuyer = async (buyerEmail, buyerName, bottle, price) =>
       </div>
     `,
   });
-};
 
 module.exports = {
   send2FACode,

@@ -12,7 +12,6 @@ const userSchema = new mongoose.Schema(
       lowercase: true,
     },
     password: { type: String, required: true, minlength: 6 },
-    phone: { type: String, default: "" },
     twoFactorCode: { type: String, default: null },
     twoFactorExpiry: { type: Date, default: null },
     twoFactorVerified: { type: Boolean, default: false },
