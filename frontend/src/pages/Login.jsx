@@ -15,7 +15,7 @@ export default function Login({ onNavigate, onLogin }) {
     setLoading(true);
     try {
       const res = await axios.post(
-        "https://wine-chain-backend.onrender.com/api/auth/login",
+        `${process.env.REACT_APP_API_URL || ""}/api/auth/login`,
         {
           email: form.email,
           password: form.password,
@@ -25,6 +25,7 @@ export default function Login({ onNavigate, onLogin }) {
       onNavigate("verify2fa", res.data.userId);
     } catch (e) {
       toast.error(e.response?.data?.error || "Login failed");
+      setForm({ email: "", password: "" });
     } finally {
       setLoading(false);
     }

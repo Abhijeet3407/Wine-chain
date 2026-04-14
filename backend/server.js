@@ -9,7 +9,7 @@ app.use(cors({
   origin: function(origin, callback) {
     if (!origin) return callback(null, true);
     if (
-      origin === "http://localhost:3000" ||
+      /^http:\/\/localhost(:\d+)?$/.test(origin) ||
       origin.endsWith(".vercel.app")
     ) {
       return callback(null, true);

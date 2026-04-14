@@ -29,7 +29,7 @@ export default function Signup({ onNavigate }) {
     setLoading(true);
     try {
       await axios.post(
-        "https://wine-chain-backend.onrender.com/api/auth/signup",
+        `${process.env.REACT_APP_API_URL || ""}/api/auth/signup`,
         {
           name: form.name,
           email: form.email,
@@ -41,6 +41,7 @@ export default function Signup({ onNavigate }) {
       onNavigate("login");
     } catch (e) {
       toast.error(e.response?.data?.error || "Signup failed");
+      setForm({ name: "", email: "", password: "", confirmPassword: "", phone: "" });
     } finally {
       setLoading(false);
     }

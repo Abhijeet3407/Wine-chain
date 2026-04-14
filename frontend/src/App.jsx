@@ -168,7 +168,7 @@ export default function App() {
               </button>
             </>
           )}
-          {!user && (
+          {!user && page !== "login" && (
             <div style={{ display: "flex", gap: 8 }}>
               <button className="btn btn-sm" onClick={() => navigate("login")}>
                 Login

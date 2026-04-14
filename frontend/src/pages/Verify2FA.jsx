@@ -14,7 +14,7 @@ export default function Verify2FA({ userId, onLogin, onNavigate }) {
     setLoading(true);
     try {
       const res = await axios.post(
-        "https://wine-chain-backend.onrender.com/api/auth/verify-2fa",
+        `${process.env.REACT_APP_API_URL || ""}/api/auth/verify-2fa`,
         {
           userId,
           code,
