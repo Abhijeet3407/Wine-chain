@@ -12,7 +12,6 @@ import Ledger from "./pages/Ledger";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import Verify2FA from "./pages/Verify2FA";
-import Analytics from "./pages/Analytics";
 import { validateChain } from "./utils/api";
 
 const NAV = [
@@ -23,7 +22,6 @@ const NAV = [
   { id: "transfer", icon: "⇄", label: "Transfer" },
   { id: "verify", icon: "✓", label: "Verify" },
   { id: "ledger", icon: "⛓", label: "Ledger" },
-  { id: "analytics", icon: "📈", label: "Analytics" },
 ];
 
 export default function App() {
@@ -108,7 +106,6 @@ export default function App() {
     transfer: <Transfer preselect={extra} onNavigate={navigate} />,
     verify: <Verify preselect={extra} />,
     ledger: <Ledger />,
-    analytics: <Analytics />,
     login: <Login onNavigate={navigate} onLogin={handleLogin} />,
   };
 
