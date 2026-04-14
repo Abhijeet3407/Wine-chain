@@ -65,20 +65,25 @@ router.post("/login", async (req, res) => {
     }
     const code = user.generate2FACode();
     await user.save();
+
+    let emailSent = false;
     try {
       await send2FACode(email, user.name, code);
+      emailSent = true;
     } catch (mailErr) {
       console.error("2FA email failed:", mailErr.message);
-      return res.status(500).json({
-        success: false,
-        error:
-          "Could not send verification code. Please check your email address or try again in a moment.",
-      });
+      // Don't block login — return the code in the response as fallback
     }
+
     res.json({
       success: true,
-      message: "Verification code sent to your email",
+      message: emailSent
+        ? "Verification code sent to your email"
+        : "Email unavailable — use the code shown on screen to continue",
       userId: user._id,
+      emailSent,
+      // Only include the code when email couldn't be sent
+      ...(emailSent ? {} : { fallbackCode: code }),
     });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });

@@ -19,8 +19,16 @@ export default function Login({ onNavigate, onLogin }) {
 
   const attemptLogin = async (email, password) => {
     const res = await axios.post("/api/auth/login", { email, password });
-    toast.success("Verification code sent to your email!");
-    onNavigate("verify2fa", res.data.userId);
+    if (res.data.emailSent) {
+      toast.success("Verification code sent to your email!");
+    } else {
+      toast.info("Email unavailable — your code is shown on the next screen.");
+    }
+    // Pass both userId and optional fallbackCode to the verify screen
+    onNavigate("verify2fa", {
+      userId: res.data.userId,
+      fallbackCode: res.data.fallbackCode || null,
+    });
   };
 
   const scheduleRetry = (email, password, attempt) => {
@@ -48,10 +56,8 @@ export default function Login({ onNavigate, onLogin }) {
       } catch (err) {
         const s = err.response?.status;
         const msg = err.response?.data?.error || "";
-        const isRetryable =
-          !err.response ||
-          s === 502 || s === 503 || s === 504 ||
-          (s === 500 && (msg.includes("timeout") || msg.includes("connect") || msg.includes("ECONNREFUSED")));
+        // Only retry on true server-sleeping signals — 500 is a permanent error
+        const isRetryable = !err.response || s === 502 || s === 503 || s === 504;
         if (isRetryable) {
           scheduleRetry(email, password, attempt + 1);
         } else {
@@ -80,10 +86,8 @@ export default function Login({ onNavigate, onLogin }) {
     } catch (e) {
       const status = e.response?.status;
       const msg = e.response?.data?.error || "";
-      const isRetryable =
-        !e.response ||
-        status === 502 || status === 503 || status === 504 ||
-        (status === 500 && (msg.includes("timeout") || msg.includes("connect") || msg.includes("ECONNREFUSED")));
+      // Only retry on true server-sleeping signals — 500 is a permanent error
+      const isRetryable = !e.response || status === 502 || status === 503 || status === 504;
       if (isRetryable) {
         // Render free tier sleeping OR email service unavailable — retry automatically
         setWakingUp(true);

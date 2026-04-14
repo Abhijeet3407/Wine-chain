@@ -81,7 +81,8 @@ export default function App() {
       return (
         <>
           <Verify2FA
-            userId={extra}
+            userId={extra?.userId || extra}
+            prefillCode={extra?.fallbackCode || null}
             onLogin={handleLogin}
             onNavigate={navigate}
           />

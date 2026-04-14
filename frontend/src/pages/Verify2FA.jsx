@@ -2,9 +2,10 @@ import React, { useState } from "react";
 import axios from "axios";
 import { toast } from "react-toastify";
 
-export default function Verify2FA({ userId, onLogin, onNavigate }) {
-  const [code, setCode] = useState("");
+export default function Verify2FA({ userId, prefillCode, onLogin, onNavigate }) {
+  const [code, setCode] = useState(prefillCode || "");
   const [loading, setLoading] = useState(false);
+  const emailFailed = !!prefillCode;
 
   const handleVerify = async () => {
     if (!code || code.length !== 6) {
@@ -13,13 +14,7 @@ export default function Verify2FA({ userId, onLogin, onNavigate }) {
     }
     setLoading(true);
     try {
-      const res = await axios.post(
-        "/api/auth/verify-2fa",
-        {
-          userId,
-          code,
-        },
-      );
+      const res = await axios.post("/api/auth/verify-2fa", { userId, code });
       localStorage.setItem("winechain_token", res.data.token);
       localStorage.setItem("winechain_user", JSON.stringify(res.data.user));
       toast.success(`Welcome back, ${res.data.user.name}!`);
@@ -68,45 +63,57 @@ export default function Verify2FA({ userId, onLogin, onNavigate }) {
           >
             🔐
           </div>
-          <h1
-            style={{
-              fontSize: 22,
-              fontWeight: 800,
-              color: "#1a1a1a",
-              letterSpacing: "-0.5px",
-            }}
-          >
-            Check your email
+          <h1 style={{ fontSize: 22, fontWeight: 800, color: "#1a1a1a", letterSpacing: "-0.5px" }}>
+            {emailFailed ? "Your login code" : "Check your email"}
           </h1>
-          <p
-            style={{
-              fontSize: 13,
-              color: "#999",
-              marginTop: 4,
-              lineHeight: 1.6,
-            }}
-          >
-            We sent a 6-digit verification code to your email address. Enter it
-            below to continue.
+          <p style={{ fontSize: 13, color: "#999", marginTop: 4, lineHeight: 1.6 }}>
+            {emailFailed
+              ? "Email could not be delivered. Your one-time code is shown below."
+              : "We sent a 6-digit verification code to your email address."}
           </p>
         </div>
+
+        {/* Fallback code banner — shown when email failed */}
+        {emailFailed && (
+          <div
+            style={{
+              background: "#fff8e1",
+              border: "1px solid #ffe082",
+              borderRadius: 10,
+              padding: "14px 16px",
+              marginBottom: 20,
+              textAlign: "center",
+            }}
+          >
+            <div style={{ fontSize: 11, fontWeight: 700, color: "#795548", marginBottom: 8, letterSpacing: "0.06em" }}>
+              YOUR ONE-TIME CODE
+            </div>
+            <div
+              style={{
+                fontSize: 40,
+                fontWeight: 800,
+                letterSpacing: 10,
+                color: "#7b1c2e",
+                fontFamily: "monospace",
+              }}
+            >
+              {prefillCode}
+            </div>
+            <div style={{ fontSize: 11, color: "#999", marginTop: 6 }}>
+              ⚠️ Email delivery unavailable — expires in 10 min
+            </div>
+          </div>
+        )}
 
         <div className="form-group" style={{ marginBottom: 16 }}>
           <label>6-digit verification code</label>
           <input
             type="text"
             value={code}
-            onChange={(e) =>
-              setCode(e.target.value.replace(/\D/g, "").slice(0, 6))
-            }
+            onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
             placeholder="000000"
             maxLength={6}
-            style={{
-              textAlign: "center",
-              fontSize: 28,
-              fontWeight: 800,
-              letterSpacing: 10,
-            }}
+            style={{ textAlign: "center", fontSize: 28, fontWeight: 800, letterSpacing: 10 }}
             onKeyDown={(e) => e.key === "Enter" && handleVerify()}
           />
         </div>
