@@ -47,12 +47,17 @@ export default function Login({ onNavigate, onLogin }) {
         setLoading(false);
       } catch (err) {
         const s = err.response?.status;
-        if (!err.response || s === 502 || s === 503 || s === 504) {
+        const msg = err.response?.data?.error || "";
+        const isRetryable =
+          !err.response ||
+          s === 502 || s === 503 || s === 504 ||
+          (s === 500 && (msg.includes("timeout") || msg.includes("connect") || msg.includes("ECONNREFUSED")));
+        if (isRetryable) {
           scheduleRetry(email, password, attempt + 1);
         } else {
           setWakingUp(false);
           setLoading(false);
-          toast.error(err.response?.data?.error || "Login failed");
+          toast.error(msg || "Login failed");
         }
       }
     }, WAIT * 1000);
@@ -74,14 +79,19 @@ export default function Login({ onNavigate, onLogin }) {
       setLoading(false);
     } catch (e) {
       const status = e.response?.status;
-      if (!e.response || status === 502 || status === 503 || status === 504) {
-        // Render free tier is waking up from sleep — retry automatically
+      const msg = e.response?.data?.error || "";
+      const isRetryable =
+        !e.response ||
+        status === 502 || status === 503 || status === 504 ||
+        (status === 500 && (msg.includes("timeout") || msg.includes("connect") || msg.includes("ECONNREFUSED")));
+      if (isRetryable) {
+        // Render free tier sleeping OR email service unavailable — retry automatically
         setWakingUp(true);
         toast.info("Server is starting up (free tier). Retrying automatically…");
         scheduleRetry(form.email, form.password, 1);
       } else {
         setLoading(false);
-        toast.error(e.response?.data?.error || "Login failed");
+        toast.error(msg || "Login failed");
       }
     }
   };
