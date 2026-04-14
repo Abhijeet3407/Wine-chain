@@ -26,6 +26,9 @@ export const getBlock = (hash) => API.get(`/chain/${hash}`);
 export const getStats = () => API.get("/stats");
 export const getAnalytics = () => API.get("/stats/analytics");
 
+export const getMe = () => API.get("/auth/me");
+export const updateProfile = (data) => API.put("/auth/profile", data);
+
 export const getListings = (params) => API.get("/marketplace", { params });
 export const createListing = (data) => API.post("/marketplace", data);
 export const unlistBottle = (id) => API.delete(`/marketplace/${id}`);

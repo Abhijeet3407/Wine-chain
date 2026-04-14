@@ -12,6 +12,7 @@ import Marketplace from "./pages/Marketplace";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import Verify2FA from "./pages/Verify2FA";
+import Profile from "./pages/Profile";
 import { validateChain } from "./utils/api";
 
 const NAV = [
@@ -22,6 +23,7 @@ const NAV = [
   { id: "add", icon: "+", label: "Register" },
   { id: "verify", icon: "✓", label: "Verify" },
   { id: "ledger", icon: "≣", label: "Ledger" },
+  { id: "profile", icon: "◎", label: "Profile", authOnly: true },
 ];
 
 export default function App() {
@@ -58,6 +60,12 @@ export default function App() {
     setUser(userData);
     setToken(userToken);
     setPage("dashboard");
+  };
+
+  const handleProfileUpdate = (updatedUser) => {
+    const merged = { ...user, ...updatedUser };
+    setUser(merged);
+    localStorage.setItem("winechain_user", JSON.stringify(merged));
   };
 
   const handleLogout = () => {
@@ -108,6 +116,7 @@ export default function App() {
     verify: <Verify preselect={extra} />,
     ledger: <Ledger />,
     login: <Login onNavigate={navigate} onLogin={handleLogin} />,
+    profile: <Profile user={user} onUpdate={handleProfileUpdate} />,
   };
 
   return (
@@ -126,7 +135,7 @@ export default function App() {
         </div>
 
         <div className="topnav-links">
-          {NAV.map((n) => (
+          {NAV.filter((n) => !n.authOnly || user).map((n) => (
             <button
               key={n.id}
               className={`nav-item ${page === n.id ? "active" : ""}`}
@@ -141,19 +150,27 @@ export default function App() {
         <div className="topnav-right">
           {user && (
             <>
-              <div
+              <button
+                onClick={() => navigate("profile")}
                 style={{
                   fontSize: 13,
-                  color: "#555",
-                  fontWeight: 500,
+                  color: page === "profile" ? "#7b1c2e" : "#555",
+                  fontWeight: 600,
                   padding: "6px 12px",
-                  background: "#f8f7f4",
+                  background: page === "profile" ? "#f5eef0" : "#f8f7f4",
                   borderRadius: 20,
-                  border: "1px solid #ece9e2",
+                  border: `1px solid ${page === "profile" ? "#ddc0c6" : "#ece9e2"}`,
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
                 }}
               >
-                👤 {user.name}
-              </div>
+                <span style={{ fontFamily: "Georgia, serif", fontWeight: 800 }}>
+                  {user.name.split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase()}
+                </span>
+                <span>{user.name.split(" ")[0]}</span>
+              </button>
               <div
                 className={`chain-badge ${chainValid === false ? "invalid" : ""}`}
               >

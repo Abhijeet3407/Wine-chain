@@ -3,6 +3,7 @@ const router = express.Router();
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 const { send2FACode, sendWelcomeEmail } = require("../mailer");
+const { protect } = require("../middleware/authMiddleware");
 
 const generateToken = (id) =>
   jwt.sign({ id }, process.env.JWT_SECRET, {
@@ -125,6 +126,51 @@ router.post("/verify-2fa", async (req, res) => {
         name: user.name,
         email: user.email,
       },
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// PUT /api/auth/profile — update name, email, or password
+router.put("/profile", protect, async (req, res) => {
+  try {
+    const { name, email, currentPassword, newPassword } = req.body;
+    const user = await User.findById(req.user._id);
+
+    if (!user) {
+      return res.status(404).json({ success: false, error: "User not found" });
+    }
+
+    if (name && name.trim()) user.name = name.trim();
+
+    if (email && email.toLowerCase() !== user.email) {
+      const exists = await User.findOne({ email: email.toLowerCase().trim() });
+      if (exists) {
+        return res.status(400).json({ success: false, error: "Email is already in use" });
+      }
+      user.email = email.toLowerCase().trim();
+    }
+
+    if (newPassword) {
+      if (!currentPassword) {
+        return res.status(400).json({ success: false, error: "Current password is required to set a new one" });
+      }
+      const match = await user.matchPassword(currentPassword);
+      if (!match) {
+        return res.status(401).json({ success: false, error: "Current password is incorrect" });
+      }
+      if (newPassword.length < 6) {
+        return res.status(400).json({ success: false, error: "New password must be at least 6 characters" });
+      }
+      user.password = newPassword; // hashed by pre-save hook
+    }
+
+    await user.save();
+
+    res.json({
+      success: true,
+      user: { id: user._id, name: user.name, email: user.email },
     });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
