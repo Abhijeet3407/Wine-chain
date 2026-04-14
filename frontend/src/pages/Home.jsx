@@ -7,7 +7,7 @@ export default function Home({ onNavigate }) {
       {/* Hero Section */}
       <div style={{
         background: "linear-gradient(135deg, #0f0c29, #302b63, #24243e)",
-        padding: "80px 32px",
+        padding: "clamp(48px, 8vw, 80px) clamp(16px, 4vw, 32px)",
         textAlign: "center",
         position: "relative",
         overflow: "hidden"
@@ -26,13 +26,13 @@ export default function Home({ onNavigate }) {
             ⛓ BLOCKCHAIN POWERED
           </div>
           <h1 style={{
-            fontSize: 56, fontWeight: 800, color: "#fff",
+            fontSize: "clamp(34px, 8vw, 56px)", fontWeight: 800, color: "#fff",
             marginBottom: 16, lineHeight: 1.1, letterSpacing: "-1.5px"
           }}>
             Wine Chain
           </h1>
           <p style={{
-            fontSize: 18, color: "rgba(255,255,255,0.65)",
+            fontSize: "clamp(14px, 3vw, 18px)", color: "rgba(255,255,255,0.65)",
             marginBottom: 40, lineHeight: 1.6, maxWidth: 500, margin: "0 auto 40px"
           }}>
             The world's most secure wine inventory system. Every bottle tracked on an immutable blockchain.
@@ -81,9 +81,9 @@ export default function Home({ onNavigate }) {
       </div>
 
       {/* Features Section */}
-      <div style={{ padding: "72px 32px", maxWidth: 1100, margin: "0 auto" }}>
+      <div style={{ padding: "clamp(40px, 6vw, 72px) clamp(16px, 4vw, 32px)", maxWidth: 1100, margin: "0 auto" }}>
         <div style={{ textAlign: "center", marginBottom: 52 }}>
-          <h2 style={{ fontSize: 36, fontWeight: 800, color: "#1a1a1a", letterSpacing: "-0.8px", marginBottom: 12 }}>
+          <h2 style={{ fontSize: "clamp(24px, 5vw, 36px)", fontWeight: 800, color: "#1a1a1a", letterSpacing: "-0.8px", marginBottom: 12 }}>
             Everything you need
           </h2>
           <p style={{ fontSize: 16, color: "#888", maxWidth: 480, margin: "0 auto" }}>
@@ -91,7 +91,7 @@ export default function Home({ onNavigate }) {
           </p>
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 24 }}>
+        <div className="home-features-grid">
           {[
             {
               icon: "⛓",
@@ -154,14 +154,14 @@ export default function Home({ onNavigate }) {
       </div>
 
       {/* How it works */}
-      <div style={{ background: "#faf9f7", padding: "72px 32px" }}>
+      <div style={{ background: "#faf9f7", padding: "clamp(40px, 6vw, 72px) clamp(16px, 4vw, 32px)" }}>
         <div style={{ maxWidth: 900, margin: "0 auto" }}>
           <div style={{ textAlign: "center", marginBottom: 52 }}>
             <h2 style={{ fontSize: 36, fontWeight: 800, color: "#1a1a1a", letterSpacing: "-0.8px", marginBottom: 12 }}>
               How it works
             </h2>
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 20 }}>
+          <div className="home-steps-grid">
             {[
               { step: "01", title: "Register", desc: "Add your bottle with details and photo. A blockchain block is mined.", icon: "🍾" },
               { step: "02", title: "Store", desc: "Data is saved to MongoDB Atlas cloud with full blockchain record.", icon: "☁️" },
@@ -195,9 +195,9 @@ export default function Home({ onNavigate }) {
       {/* CTA Section */}
       <div style={{
         background: "linear-gradient(135deg, #1a1a2e, #16213e)",
-        padding: "72px 32px", textAlign: "center"
+        padding: "clamp(40px, 6vw, 72px) clamp(16px, 4vw, 32px)", textAlign: "center"
       }}>
-        <h2 style={{ fontSize: 36, fontWeight: 800, color: "#fff", marginBottom: 16, letterSpacing: "-0.8px" }}>
+        <h2 style={{ fontSize: "clamp(24px, 5vw, 36px)", fontWeight: 800, color: "#fff", marginBottom: 16, letterSpacing: "-0.8px" }}>
           Ready to get started?
         </h2>
         <p style={{ fontSize: 16, color: "rgba(255,255,255,0.6)", marginBottom: 36 }}>

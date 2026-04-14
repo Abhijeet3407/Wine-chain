@@ -689,28 +689,242 @@ tr:hover td {
   background: #bbb;
 }
 
-/* ── Responsive ── */
+/* ── Chart grids (responsive classes) ── */
+.chart-grid-3-2 {
+  display: grid;
+  grid-template-columns: 3fr 2fr;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+.chart-grid-half {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+.chart-grid-tables {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+/* ── Home page responsive grids ── */
+.home-features-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+}
+.home-steps-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+}
+
+/* ── Bottom Nav (hidden on desktop, visible on mobile) ── */
+.bottomnav {
+  display: none;
+}
+
+/* ── Responsive: tablet + mobile ── */
 @media (max-width: 768px) {
+
+  /* ── Top nav: compact, no page links (bottom nav handles those) ── */
   .topnav {
-    padding: 0 16px;
-    overflow-x: auto;
+    padding: 0 14px;
+    height: 54px;
   }
   .topnav-links {
-    gap: 0;
-  }
-  .nav-item span {
     display: none;
   }
-  .main-content {
-    padding: 20px 16px;
+  .topnav-logo {
+    margin-right: 0;
   }
-  .metrics-grid {
-    grid-template-columns: 1fr 1fr;
-  }
-  .form-grid {
-    grid-template-columns: 1fr;
+  .topnav-logo h1 {
+    font-size: 14px;
   }
   .topnav-logo span {
     display: none;
+  }
+  .topnav-logo-icon {
+    width: 30px;
+    height: 30px;
+    font-size: 16px;
+  }
+  .chain-badge {
+    padding: 4px 8px;
+    font-size: 11px;
+  }
+  .chain-badge-text {
+    display: none;
+  }
+
+  /* ── Main content: padding for bottom nav ── */
+  .main-content {
+    padding: 20px 14px 90px;
+  }
+  .home-page {
+    padding-bottom: 72px;
+  }
+
+  /* ── Bottom nav ── */
+  .bottomnav {
+    display: flex;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: #fff;
+    border-top: 1px solid #ece9e2;
+    z-index: 300;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    box-shadow: 0 -2px 20px rgba(0, 0, 0, 0.08);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .bottomnav::-webkit-scrollbar {
+    display: none;
+  }
+  .bottomnav-item {
+    flex: 1;
+    min-width: 54px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 4px 10px;
+    border: none;
+    background: none;
+    color: #bbb;
+    cursor: pointer;
+    font-family: inherit;
+    transition: color 0.15s;
+    gap: 3px;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .bottomnav-item.active {
+    color: #7b1c2e;
+  }
+  .bottomnav-item.active .bottomnav-label {
+    font-weight: 700;
+  }
+  .bottomnav-icon {
+    font-size: 20px;
+    line-height: 1;
+  }
+  .bottomnav-label {
+    font-size: 10px;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+
+  /* ── Metrics ── */
+  .metrics-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  .metric-card {
+    padding: 14px 14px;
+  }
+  .metric-value {
+    font-size: 22px;
+  }
+  .metric-label {
+    font-size: 10px;
+  }
+
+  /* ── Chart grids → single column ── */
+  .chart-grid-3-2,
+  .chart-grid-half,
+  .chart-grid-tables {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* ── Forms ── */
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* ── Toolbar ── */
+  .toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .search-input {
+    width: 100%;
+  }
+  .filter-select {
+    width: 100%;
+  }
+
+  /* ── Cards ── */
+  .card {
+    padding: 16px 14px;
+  }
+  .page-title {
+    font-size: 21px;
+  }
+  .page-sub {
+    margin-bottom: 16px;
+  }
+
+  /* ── Buttons: larger touch targets ── */
+  .btn {
+    min-height: 44px;
+    padding: 10px 16px;
+  }
+  .btn-sm {
+    min-height: 36px;
+    padding: 7px 10px;
+  }
+
+  /* ── Modals: bottom sheet on mobile ── */
+  .modal {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    top: auto;
+    width: 100%;
+    max-width: 100%;
+    border-radius: 20px 20px 0 0;
+    max-height: 90vh;
+    padding: 20px 20px 36px;
+  }
+  .modal-backdrop {
+    align-items: flex-end;
+  }
+
+  /* ── Home page ── */
+  .home-features-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .home-steps-grid {
+    grid-template-columns: 1fr 1fr !important;
+  }
+}
+
+/* ── Responsive: small phones ── */
+@media (max-width: 480px) {
+  .metrics-grid {
+    gap: 8px;
+  }
+  .metric-value {
+    font-size: 18px;
+  }
+  .main-content {
+    padding: 14px 12px 90px;
+  }
+  .home-steps-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .chain-badge {
+    display: none;
+  }
+  .topnav-right > div:first-child {
+    font-size: 12px;
+    padding: 4px 8px;
   }
 }

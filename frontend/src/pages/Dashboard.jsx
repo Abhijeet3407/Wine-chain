@@ -176,7 +176,7 @@ export default function Dashboard() {
       </div>
 
       {/* ── Row 1: Portfolio value + Wine type doughnut ── */}
-      <div style={{ display: "grid", gridTemplateColumns: "3fr 2fr", gap: 20, marginBottom: 20 }}>
+      <div className="chart-grid-3-2">
         <ChartCard title="Portfolio Value Over Time">
           {cumValues.length === 0 ? <Empty /> : (
             <Line
@@ -235,7 +235,7 @@ export default function Dashboard() {
       </div>
 
       {/* ── Row 2: Monthly registrations + Top regions ── */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, marginBottom: 20 }}>
+      <div className="chart-grid-half">
         <ChartCard title="Monthly Registrations">
           {monthlyCounts.length === 0 ? <Empty /> : (
             <Bar
@@ -316,7 +316,7 @@ export default function Dashboard() {
       </ChartCard>
 
       {/* ── Row 4: Inventory tables ── */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 20 }}>
+      <div className="chart-grid-tables">
         <div className="card">
           <div className="card-title">Inventory by type</div>
           {stats?.byType?.length === 0 && <Empty />}

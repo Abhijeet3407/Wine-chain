@@ -157,11 +157,13 @@ export default function App() {
                 className={`chain-badge ${chainValid === false ? "invalid" : ""}`}
               >
                 <span>{chainValid === null ? "⏳" : "●"}</span>
-                {chainValid === null
-                  ? "Checking"
-                  : chainValid
-                    ? "Chain valid"
-                    : "Chain issue"}
+                <span className="chain-badge-text">
+                  {chainValid === null
+                    ? "Checking"
+                    : chainValid
+                      ? "Chain valid"
+                      : "Chain issue"}
+                </span>
               </div>
               <button className="btn btn-sm btn-danger" onClick={handleLogout}>
                 Logout
@@ -184,9 +186,25 @@ export default function App() {
         </div>
       </nav>
 
-      <main className={page === "home" ? "" : "main-content"}>
+      <main className={page === "home" ? "home-page" : "main-content"}>
         {pages[page] || <Home onNavigate={navigate} />}
       </main>
+
+      {/* Mobile bottom navigation */}
+      {user && (
+        <nav className="bottomnav">
+          {NAV.map((n) => (
+            <button
+              key={n.id}
+              className={`bottomnav-item ${page === n.id ? "active" : ""}`}
+              onClick={() => navigate(n.id)}
+            >
+              <span className="bottomnav-icon">{n.icon}</span>
+              <span className="bottomnav-label">{n.label}</span>
+            </button>
+          ))}
+        </nav>
+      )}
 
       <ToastContainer
         position="bottom-right"
