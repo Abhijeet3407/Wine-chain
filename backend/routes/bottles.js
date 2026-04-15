@@ -45,16 +45,23 @@ async function addBlockToChain(data, bottleId = null) {
 router.get("/", protect, async (req, res) => {
   try {
     const { search, type, status, page = 1, limit = 20 } = req.query;
-    const query = { registeredBy: req.user._id };
+    // Show bottles owned by this user OR legacy bottles with no owner assigned yet
+    const ownerFilter = { $or: [{ registeredBy: req.user._id }, { registeredBy: null }] };
+
+    const searchFilter = {};
     if (search)
-      query.$or = [
+      searchFilter.$or = [
         { name: { $regex: search, $options: "i" } },
         { producer: { $regex: search, $options: "i" } },
         { region: { $regex: search, $options: "i" } },
         { bottleId: { $regex: search, $options: "i" } },
       ];
-    if (type) query.type = type;
-    if (status) query.status = status;
+    if (type) searchFilter.type = type;
+    if (status) searchFilter.status = status;
+
+    const query = search || type || status
+      ? { $and: [ownerFilter, searchFilter] }
+      : ownerFilter;
 
     const total = await Bottle.countDocuments(query);
     const bottles = await Bottle.find(query)

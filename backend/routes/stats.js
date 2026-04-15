@@ -2,14 +2,31 @@ const express = require("express");
 const router = express.Router();
 const Bottle = require("../models/Bottle");
 const Block = require("../models/Block");
+const { protect } = require("../middleware/authMiddleware");
 
-router.get("/", async (req, res) => {
+// Match bottles owned by the user OR legacy bottles with no owner
+const userMatch = (userId) => ({
+  $match: { $or: [{ registeredBy: userId }, { registeredBy: null }] },
+});
+
+router.get("/", protect, async (req, res) => {
   try {
+    const uid = req.user._id;
+
     const [totalBottles, totalBlocks, typeStats, statusStats] = await Promise.all([
-      Bottle.aggregate([{ $group: { _id: null, totalQty: { $sum: "$quantity" }, totalValue: { $sum: { $multiply: ["$quantity", "$purchasePrice"] } }, count: { $sum: 1 } } }]),
+      Bottle.aggregate([
+        userMatch(uid),
+        { $group: { _id: null, totalQty: { $sum: "$quantity" }, totalValue: { $sum: { $multiply: ["$quantity", "$purchasePrice"] } }, count: { $sum: 1 } } },
+      ]),
       Block.countDocuments(),
-      Bottle.aggregate([{ $group: { _id: "$type", count: { $sum: 1 }, qty: { $sum: "$quantity" } } }]),
-      Bottle.aggregate([{ $group: { _id: "$status", count: { $sum: 1 } } }]),
+      Bottle.aggregate([
+        userMatch(uid),
+        { $group: { _id: "$type", count: { $sum: 1 }, qty: { $sum: "$quantity" } } },
+      ]),
+      Bottle.aggregate([
+        userMatch(uid),
+        { $group: { _id: "$status", count: { $sum: 1 } } },
+      ]),
     ]);
 
     res.json({
@@ -28,25 +45,31 @@ router.get("/", async (req, res) => {
   }
 });
 
-router.get("/analytics", async (req, res) => {
+router.get("/analytics", protect, async (req, res) => {
   try {
+    const uid = req.user._id;
+
     const [byType, byRegion, byProducer, monthlyData, mostValuable, summary] =
       await Promise.all([
         Bottle.aggregate([
+          userMatch(uid),
           { $group: { _id: "$type", count: { $sum: "$quantity" } } },
           { $sort: { count: -1 } },
         ]),
         Bottle.aggregate([
+          userMatch(uid),
           { $group: { _id: "$region", count: { $sum: "$quantity" } } },
           { $sort: { count: -1 } },
           { $limit: 8 },
         ]),
         Bottle.aggregate([
+          userMatch(uid),
           { $group: { _id: "$producer", count: { $sum: 1 } } },
           { $sort: { count: -1 } },
           { $limit: 8 },
         ]),
         Bottle.aggregate([
+          userMatch(uid),
           {
             $group: {
               _id: { year: { $year: "$createdAt" }, month: { $month: "$createdAt" } },
@@ -56,10 +79,14 @@ router.get("/analytics", async (req, res) => {
           },
           { $sort: { "_id.year": 1, "_id.month": 1 } },
         ]),
-        Bottle.findOne({ purchasePrice: { $gt: 0 } })
+        Bottle.findOne({
+          $or: [{ registeredBy: uid }, { registeredBy: null }],
+          purchasePrice: { $gt: 0 },
+        })
           .sort({ purchasePrice: -1 })
           .select("name purchasePrice vintage type"),
         Bottle.aggregate([
+          userMatch(uid),
           {
             $group: {
               _id: null,
