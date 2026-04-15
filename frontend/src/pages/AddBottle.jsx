@@ -10,7 +10,6 @@ const INITIAL = {
   producer: "",
   quantity: "",
   purchasePrice: "",
-  currentOwner: "",
   description: "",
 };
 
@@ -29,7 +28,6 @@ export default function AddBottle({ onNavigate }) {
       !form.vintage ||
       !form.region ||
       !form.producer ||
-      !form.currentOwner ||
       !form.quantity ||
       !form.purchasePrice
     ) {
@@ -83,7 +81,7 @@ export default function AddBottle({ onNavigate }) {
               onChange={(e) => set("vintage", e.target.value)}
               placeholder="2018"
               min="1900"
-              max="2024"
+              max={new Date().getFullYear()}
             />
           </div>
           <div className="form-group">
@@ -118,14 +116,6 @@ export default function AddBottle({ onNavigate }) {
               value={form.producer}
               onChange={(e) => set("producer", e.target.value)}
               placeholder="e.g. Château Margaux SA"
-            />
-          </div>
-          <div className="form-group">
-            <label>Current owner *</label>
-            <input
-              value={form.currentOwner}
-              onChange={(e) => set("currentOwner", e.target.value)}
-              placeholder="Full name"
             />
           </div>
           <div className="form-group">

@@ -23,6 +23,8 @@ const bottleSchema = new mongoose.Schema(
     producer: { type: String, required: true, trim: true },
     quantity: { type: Number, required: true, min: 1 },
     purchasePrice: { type: Number, default: 0 },
+    registeredBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
+    ownerEmail: { type: String, default: "" },
     currentOwner: { type: String, required: true, trim: true },
     description: { type: String, default: "" },
     imageUrl: { type: String, default: "" },

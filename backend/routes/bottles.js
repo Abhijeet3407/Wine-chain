@@ -4,6 +4,7 @@ const Bottle = require("../models/Bottle");
 const Block = require("../models/Block");
 const { Block: ChainBlock, Blockchain } = require("../blockchain/chain");
 const { upload } = require("../cloudinary");
+const { protect } = require("../middleware/authMiddleware");
 
 const blockchain = new Blockchain();
 
@@ -40,11 +41,11 @@ async function addBlockToChain(data, bottleId = null) {
   return saved;
 }
 
-// GET all bottles
-router.get("/", async (req, res) => {
+// GET all bottles — only the logged-in user's own bottles
+router.get("/", protect, async (req, res) => {
   try {
     const { search, type, status, page = 1, limit = 20 } = req.query;
-    const query = {};
+    const query = { registeredBy: req.user._id };
     if (search)
       query.$or = [
         { name: { $regex: search, $options: "i" } },
@@ -92,8 +93,8 @@ router.get("/:id", async (req, res) => {
   }
 });
 
-// POST register new bottle
-router.post("/", upload.single("image"), async (req, res) => {
+// POST register new bottle — owner taken silently from the logged-in account
+router.post("/", protect, upload.single("image"), async (req, res) => {
   try {
     const {
       name,
@@ -103,15 +104,18 @@ router.post("/", upload.single("image"), async (req, res) => {
       producer,
       quantity,
       purchasePrice,
-      currentOwner,
       description,
     } = req.body;
 
-    if (!name || !vintage || !type || !region || !producer || !currentOwner) {
+    if (!name || !vintage || !type || !region || !producer) {
       return res
         .status(400)
         .json({ success: false, error: "Missing required fields" });
     }
+
+    const currentOwner = req.user.name;
+    const ownerEmail   = req.user.email;
+    const registeredBy = req.user._id;
 
     const imageUrl = req.file ? req.file.path : "";
     const bottle = new Bottle({
@@ -123,6 +127,8 @@ router.post("/", upload.single("image"), async (req, res) => {
       quantity: quantity || 1,
       purchasePrice: purchasePrice || 0,
       currentOwner,
+      ownerEmail,
+      registeredBy,
       description,
       imageUrl,
     });
@@ -138,7 +144,8 @@ router.post("/", upload.single("image"), async (req, res) => {
       producer,
       quantity: quantity || 1,
       owner: currentOwner,
-      action: `Bottle "${name}" ${vintage} registered by ${currentOwner}`,
+      registeredBy: registeredBy.toString(),
+      action: `Bottle "${name}" ${vintage} registered by ${currentOwner} (${ownerEmail})`,
     };
 
     const block = await addBlockToChain(blockData, bottle._id);
@@ -154,7 +161,7 @@ router.post("/", upload.single("image"), async (req, res) => {
 });
 
 // PUT transfer ownership
-router.put("/:id/transfer", async (req, res) => {
+router.put("/:id/transfer", protect, async (req, res) => {
   try {
     const { toOwner, price, notes } = req.body;
     if (!toOwner)
@@ -172,6 +179,10 @@ router.put("/:id/transfer", async (req, res) => {
       return res
         .status(404)
         .json({ success: false, error: "Bottle not found" });
+
+    if (bottle.registeredBy && bottle.registeredBy.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ success: false, error: "Not authorised to transfer this bottle" });
+    }
 
     const blockData = {
       type: "TRANSFER",
@@ -246,9 +257,9 @@ router.get("/:id/verify", async (req, res) => {
 });
 
 // DELETE bottle
-router.delete("/:id", async (req, res) => {
+router.delete("/:id", protect, async (req, res) => {
   try {
-    const bottle = await Bottle.findOneAndDelete({
+    const bottle = await Bottle.findOne({
       $or: [
         { _id: req.params.id.match(/^[a-f\d]{24}$/i) ? req.params.id : null },
         { bottleId: req.params.id },
@@ -258,6 +269,12 @@ router.delete("/:id", async (req, res) => {
       return res
         .status(404)
         .json({ success: false, error: "Bottle not found" });
+
+    if (bottle.registeredBy && bottle.registeredBy.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ success: false, error: "Not authorised to delete this bottle" });
+    }
+
+    await bottle.deleteOne();
     res.json({ success: true, message: "Bottle removed from inventory" });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
