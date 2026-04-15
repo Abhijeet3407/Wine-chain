@@ -1,104 +1,36 @@
-# 🍷 Wine Chain — Blockchain Wine Inventory System
+# Wine Chain — Blockchain Wine Inventory System
 
-A full-stack blockchain-based wine inventory system built with **React**, **Node.js/Express**, and **MongoDB**.
+A full-stack blockchain-based wine inventory and marketplace platform with user authentication, two-factor login, per-user ownership tracking, and a peer-to-peer marketplace.
 
 ---
 
 ## Features
 
-- **Register bottles** — Add wine bottles to an immutable blockchain ledger
-- **Transfer ownership** — Record ownership changes as blockchain transactions
-- **Verify authenticity** — Confirm any bottle's full provenance history
+- **User accounts** — Sign up, log in with 2FA OTP via email (Resend), profile management
+- **Device trust** — Skip OTP for 2 hours after first login from same device
+- **Register bottles** — Add wine bottles to an immutable SHA-256 blockchain ledger
+- **Per-user inventory** — Each user sees only bottles they registered
+- **Verify authenticity** — Confirm any bottle's full provenance and blockchain history
 - **Blockchain ledger** — Browse every block ever written to the chain
-- **Dashboard** — Portfolio stats, chain validity indicator
+- **Dashboard** — Portfolio stats with per-user filtering and chain validity indicator
+- **Marketplace** — List bottles for sale, make offers, buy now, accept/reject offers
+- **Image uploads** — Cloudinary-backed bottle photo storage
+- **Mobile responsive** — Bottom tab navigation on small screens
+
+---
 
 ## Tech Stack
 
-| Layer      | Technology                        |
-|------------|-----------------------------------|
-| Frontend   | React 18, Axios, React-Toastify   |
-| Backend    | Node.js, Express 4                |
-| Database   | MongoDB (Mongoose ODM)            |
-| Blockchain | SHA-256 Proof-of-Work (built-in)  |
-
----
-
-## Prerequisites
-
-Install these before running the project:
-
-1. **Node.js** (v18+) → https://nodejs.org
-2. **MongoDB Community** → https://www.mongodb.com/try/download/community
-   - After installing, start MongoDB:
-     - **Windows**: MongoDB runs as a service automatically
-     - **Mac**: `brew services start mongodb-community`
-     - **Linux**: `sudo systemctl start mongod`
-
----
-
-## Setup & Run in VS Code
-
-### Step 1 — Open the project
-```
-File → Open Folder → select the wine-chain folder
-```
-
-### Step 2 — Install dependencies
-Open the integrated terminal (`Ctrl+`` `) and run:
-```bash
-npm run install:all
-```
-
-### Step 3 — Configure environment
-The `backend/.env` file is already created with defaults:
-```
-PORT=5000
-MONGODB_URI=mongodb://localhost:27017/winechain
-NODE_ENV=development
-```
-Change `MONGODB_URI` if your MongoDB runs on a different port or you use MongoDB Atlas.
-
-### Step 4 — Run the full stack
-**Option A — Using VS Code Tasks (recommended):**
-```
-Terminal → Run Task → Start Full Stack
-```
-
-**Option B — Using the terminal:**
-```bash
-npm run dev
-```
-This starts both servers via `concurrently`.
-
-**Option C — Run separately:**
-```bash
-# Terminal 1 — Backend
-cd backend && npm run dev
-
-# Terminal 2 — Frontend
-cd frontend && npm start
-```
-
-### Step 5 — Open the app
-Visit **http://localhost:3000** in your browser.
-
-The API runs on **http://localhost:5000**.
-
----
-
-## API Endpoints
-
-| Method | Endpoint                      | Description              |
-|--------|-------------------------------|--------------------------|
-| GET    | /api/bottles                  | List all bottles         |
-| POST   | /api/bottles                  | Register new bottle      |
-| GET    | /api/bottles/:id              | Get single bottle        |
-| PUT    | /api/bottles/:id/transfer     | Transfer ownership       |
-| GET    | /api/bottles/:id/verify       | Verify authenticity      |
-| DELETE | /api/bottles/:id              | Remove bottle            |
-| GET    | /api/chain                    | Get blockchain ledger    |
-| GET    | /api/chain/validate           | Validate chain integrity |
-| GET    | /api/stats                    | Dashboard statistics     |
+| Layer        | Technology                                      |
+|--------------|-------------------------------------------------|
+| Frontend     | React 18, Axios, React-Toastify                 |
+| Backend      | Node.js 18, Express 4                           |
+| Database     | MongoDB Atlas (Mongoose ODM)                    |
+| Blockchain   | SHA-256 Proof-of-Work (custom, difficulty 2)    |
+| Auth         | JWT (jsonwebtoken), bcrypt                      |
+| 2FA / Email  | Resend API (transactional email)                |
+| Image Upload | Cloudinary + multer-storage-cloudinary          |
+| Deployment   | Vercel (frontend) + Render (backend)            |
 
 ---
 
@@ -106,66 +38,220 @@ The API runs on **http://localhost:5000**.
 
 ```
 wine-chain/
-├── .vscode/
-│   ├── launch.json        ← Debug configuration
-│   └── tasks.json         ← Build tasks
 ├── backend/
 │   ├── blockchain/
-│   │   └── chain.js       ← SHA-256 PoW blockchain engine
+│   │   └── chain.js              SHA-256 PoW blockchain engine
+│   ├── middleware/
+│   │   └── authMiddleware.js     JWT protect middleware
 │   ├── models/
-│   │   ├── Block.js       ← MongoDB Block schema
-│   │   └── Bottle.js      ← MongoDB Bottle schema
+│   │   ├── Block.js              MongoDB Block schema
+│   │   ├── Bottle.js             Bottle schema (registeredBy, ownerEmail)
+│   │   ├── Listing.js            Marketplace listing schema
+│   │   └── User.js               User schema (JWT, 2FA, device trust)
 │   ├── routes/
-│   │   ├── bottles.js     ← Bottle CRUD + transfer + verify
-│   │   ├── chain.js       ← Ledger endpoints
-│   │   └── stats.js       ← Dashboard stats
-│   ├── .env               ← Environment variables
-│   ├── package.json
-│   └── server.js          ← Express entry point
+│   │   ├── auth.js               Signup, login, 2FA verify, profile, logout
+│   │   ├── bottles.js            Bottle CRUD + verify (auth-protected)
+│   │   ├── chain.js              Ledger endpoints
+│   │   ├── marketplace.js        Listings, offers, buy-now, accept/reject
+│   │   └── stats.js              Per-user dashboard stats + analytics
+│   ├── mailer.js                 Resend email helpers (2FA, welcome, marketplace)
+│   ├── .env                      Environment variables (not committed)
+│   ├── server.js                 Express entry point
+│   └── package.json
 ├── frontend/
 │   ├── public/
 │   │   └── index.html
 │   ├── src/
 │   │   ├── pages/
-│   │   │   ├── Dashboard.jsx
-│   │   │   ├── Inventory.jsx
-│   │   │   ├── AddBottle.jsx
-│   │   │   ├── MarketPlace.jsx
-│   │   │   ├── Verify.jsx
-│   │   │   └── Ledger.jsx
+│   │   │   ├── Home.jsx          Landing / marketing page
+│   │   │   ├── Login.jsx         Login form with device trust + cold-start retry
+│   │   │   ├── Signup.jsx        Registration form
+│   │   │   ├── Verify2FA.jsx     OTP entry + fallback code display
+│   │   │   ├── Profile.jsx       View and edit personal info / password
+│   │   │   ├── Dashboard.jsx     Stats overview
+│   │   │   ├── Inventory.jsx     Per-user bottle list + PDF export
+│   │   │   ├── AddBottle.jsx     Register a new bottle
+│   │   │   ├── Verify.jsx        Verify bottle authenticity
+│   │   │   ├── Ledger.jsx        Full blockchain ledger
+│   │   │   └── Marketplace.jsx   Buy, sell, offers
 │   │   ├── utils/
-│   │   │   └── api.js     ← Axios API calls
+│   │   │   └── api.js            Axios instance + all API calls
 │   │   ├── styles/
-│   │   │   └── App.css    ← Global styles
-│   │   ├── App.jsx        ← Main app with sidebar navigation
-│   │   └── index.js       ← React entry point
+│   │   │   └── App.css           Global styles + mobile responsive
+│   │   ├── App.jsx               Routing, nav, auth state
+│   │   └── index.js              React entry point
+│   ├── vercel.json               Rewrites /api/* → Render backend
 │   └── package.json
-├── package.json           ← Root scripts (install:all, dev)
+├── package.json                  Root scripts (install:all, dev)
 ├── .gitignore
 └── README.md
 ```
 
 ---
 
-## Using MongoDB Atlas (Cloud)
+## API Reference
 
-If you prefer a cloud database instead of local MongoDB:
+### Auth — `/api/auth`
 
-1. Create a free account at https://cloud.mongodb.com
-2. Create a free M0 cluster
-3. Get your connection string (looks like `mongodb+srv://user:pass@cluster.mongodb.net/winechain`)
-4. Update `backend/.env`:
+| Method | Endpoint                  | Auth | Description                                 |
+|--------|---------------------------|------|---------------------------------------------|
+| POST   | /signup                   | No   | Create account (name, email, password)      |
+| POST   | /login                    | No   | Login; triggers 2FA OTP or device trust     |
+| POST   | /verify-2fa               | No   | Submit OTP; returns JWT + device token      |
+| GET    | /me                       | JWT  | Get current user                            |
+| PUT    | /profile                  | JWT  | Update name, email, or password             |
+| POST   | /logout                   | No   | Stateless logout (client clears token)      |
+
+### Bottles — `/api/bottles`
+
+| Method | Endpoint                  | Auth | Description                                 |
+|--------|---------------------------|------|---------------------------------------------|
+| GET    | /                         | JWT  | List bottles owned by user (+ legacy)       |
+| POST   | /                         | JWT  | Register new bottle (owner set from JWT)    |
+| GET    | /:id                      | JWT  | Get single bottle                           |
+| GET    | /:id/verify               | JWT  | Verify authenticity via blockchain          |
+| DELETE | /:id                      | JWT  | Delete bottle (owner only)                  |
+
+### Blockchain — `/api/chain`
+
+| Method | Endpoint                  | Auth | Description                                 |
+|--------|---------------------------|------|---------------------------------------------|
+| GET    | /                         | JWT  | Get full ledger (paginated)                 |
+| GET    | /validate                 | JWT  | Validate chain integrity                    |
+| GET    | /:hash                    | JWT  | Get single block by hash                    |
+
+### Stats — `/api/stats`
+
+| Method | Endpoint                  | Auth | Description                                 |
+|--------|---------------------------|------|---------------------------------------------|
+| GET    | /                         | JWT  | Per-user summary stats                      |
+| GET    | /analytics                | JWT  | Per-user analytics breakdown                |
+
+### Marketplace — `/api/marketplace`
+
+| Method | Endpoint                              | Auth | Description                           |
+|--------|---------------------------------------|------|---------------------------------------|
+| GET    | /                                     | JWT  | List active marketplace listings      |
+| POST   | /                                     | JWT  | Create a new listing                  |
+| DELETE | /:id                                  | JWT  | Unlist a bottle (seller only)         |
+| POST   | /:id/buy                              | JWT  | Initiate a buy-now purchase           |
+| POST   | /:id/buy/confirm                      | JWT  | Confirm buy-now (seller confirms)     |
+| POST   | /:id/offers                           | JWT  | Make an offer                         |
+| GET    | /:id/offers                           | JWT  | Get all offers for a listing          |
+| POST   | /:id/offers/:offerId/accept           | JWT  | Accept an offer                       |
+| POST   | /:id/offers/:offerId/reject           | JWT  | Reject an offer                       |
+
+---
+
+## Environment Variables
+
+### Backend (`backend/.env`)
+
+```env
+PORT=5000
+MONGODB_URI=mongodb+srv://<user>:<pass>@cluster.mongodb.net/winechain
+JWT_SECRET=your_jwt_secret_here
+JWT_EXPIRE=7d
+NODE_ENV=production
+
+# Resend (https://resend.com)
+RESEND_API_KEY=re_xxxxxxxxxxxx
+RESEND_FROM_EMAIL=Wine Chain <onboarding@resend.dev>
+
+# Cloudinary (https://cloudinary.com)
+CLOUDINARY_CLOUD_NAME=your_cloud_name
+CLOUDINARY_API_KEY=your_api_key
+CLOUDINARY_API_SECRET=your_api_secret
 ```
-MONGODB_URI=mongodb+srv://your-user:your-password@cluster.mongodb.net/winechain
+
+> For production email delivery to any address (not just your own Resend-verified domain), add and verify a custom domain in the Resend dashboard and update `RESEND_FROM_EMAIL` accordingly.
+
+---
+
+## Local Development
+
+### Prerequisites
+
+- Node.js v18+
+- A MongoDB Atlas free cluster (or local MongoDB)
+- Resend account + API key
+- Cloudinary account
+
+### Install dependencies
+
+```bash
+npm run install:all
 ```
+
+### Configure environment
+
+Create `backend/.env` from the template above.
+
+For local frontend development, create `frontend/.env`:
+```env
+REACT_APP_API_URL=http://localhost:5000
+```
+
+The Vite/CRA dev proxy is already set up in `package.json` to forward `/api` requests to `localhost:5000`.
+
+### Run
+
+```bash
+# Both servers via concurrently
+npm run dev
+
+# Or separately
+cd backend && npm run dev   # http://localhost:5000
+cd frontend && npm start    # http://localhost:3000
+```
+
+---
+
+## Deployment
+
+The project is deployed in a split-host configuration:
+
+| Service | What runs there     | URL                                      |
+|---------|---------------------|------------------------------------------|
+| Vercel  | React frontend      | Configured via `frontend/vercel.json`    |
+| Render  | Node/Express API    | Free tier (cold-start ~30s after idle)   |
+
+`frontend/vercel.json` rewrites all `/api/*` requests to the Render backend URL so there are no CORS issues.
+
+The login page includes automatic retry logic (up to 7 attempts, 10s apart) to handle Render's free-tier cold start gracefully.
+
+---
+
+## Authentication Flow
+
+```
+User enters email + password
+        │
+        ▼
+Backend checks device trust token (2-hour window)
+        │
+   ┌────┴────┐
+   │ Trusted │ ──► Skip OTP → JWT issued → logged in
+   │ device  │
+   └────┬────┘
+        │ Not trusted
+        ▼
+Resend sends 6-digit OTP to user's email
+        │
+        ▼ (if email fails, code shown on screen)
+User enters OTP on Verify screen
+        │
+        ▼
+JWT issued + device trust token stored (2h)
+```
+
+Device trust tokens are stored in `localStorage` as `winechain_device` and survive logout, enabling seamless re-login within the trust window.
 
 ---
 
 ## Recommended VS Code Extensions
 
-Install these for the best experience:
-- **Prettier** (`esbenp.prettier-vscode`) — code formatting
-- **ESLint** (`dbaeumer.vscode-eslint`) — linting
-- **MongoDB for VS Code** (`mongodb.mongodb-vscode`) — browse your database
-- **ES7+ React Snippets** (`dsznajder.es7-react-js-snippets`) — React shortcuts
-# Wine-chain
+- **Prettier** (`esbenp.prettier-vscode`)
+- **ESLint** (`dbaeumer.vscode-eslint`)
+- **MongoDB for VS Code** (`mongodb.mongodb-vscode`)
+- **ES7+ React Snippets** (`dsznajder.es7-react-js-snippets`)
