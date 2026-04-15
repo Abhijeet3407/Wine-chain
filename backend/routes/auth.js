@@ -1,9 +1,12 @@
 const express = require("express");
 const router = express.Router();
 const jwt = require("jsonwebtoken");
+const crypto = require("crypto");
 const User = require("../models/User");
 const { send2FACode, sendWelcomeEmail } = require("../mailer");
 const { protect } = require("../middleware/authMiddleware");
+
+const DEVICE_TRUST_MS = 2 * 60 * 60 * 1000; // 2 hours
 
 const generateToken = (id) =>
   jwt.sign({ id }, process.env.JWT_SECRET, {
@@ -52,7 +55,7 @@ router.post("/signup", async (req, res) => {
 // POST /api/auth/login
 router.post("/login", async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, deviceToken } = req.body;
     if (!email || !password) {
       return res
         .status(400)
@@ -64,6 +67,29 @@ router.post("/login", async (req, res) => {
         .status(401)
         .json({ success: false, error: "Invalid email or password" });
     }
+
+    // Trusted device check — skip 2FA if device token is valid
+    if (
+      deviceToken &&
+      user.deviceToken === deviceToken &&
+      user.deviceTokenExpiry &&
+      user.deviceTokenExpiry > new Date()
+    ) {
+      // Refresh the trust window for another 2 hours
+      user.deviceTokenExpiry = new Date(Date.now() + DEVICE_TRUST_MS);
+      user.lastLogin = new Date();
+      await user.save();
+      const token = generateToken(user._id);
+      return res.json({
+        success: true,
+        skipOtp: true,
+        token,
+        deviceToken: user.deviceToken,
+        user: { id: user._id, name: user.name, email: user.email },
+      });
+    }
+
+    // Normal 2FA flow
     const code = user.generate2FACode();
     await user.save();
 
@@ -73,7 +99,6 @@ router.post("/login", async (req, res) => {
       emailSent = true;
     } catch (mailErr) {
       console.error("2FA email failed:", mailErr.message);
-      // Don't block login — return the code in the response as fallback
     }
 
     res.json({
@@ -83,7 +108,6 @@ router.post("/login", async (req, res) => {
         : "Email unavailable — use the code shown on screen to continue",
       userId: user._id,
       emailSent,
-      // Only include the code when email couldn't be sent
       ...(emailSent ? {} : { fallbackCode: code }),
     });
   } catch (err) {
@@ -116,11 +140,18 @@ router.post("/verify-2fa", async (req, res) => {
     user.twoFactorCode = null;
     user.twoFactorExpiry = null;
     user.lastLogin = new Date();
+
+    // Issue a device trust token valid for 2 hours
+    const deviceToken = crypto.randomBytes(32).toString("hex");
+    user.deviceToken = deviceToken;
+    user.deviceTokenExpiry = new Date(Date.now() + DEVICE_TRUST_MS);
+
     await user.save();
     const token = generateToken(user._id);
     res.json({
       success: true,
       token,
+      deviceToken,
       user: {
         id: user._id,
         name: user.name,

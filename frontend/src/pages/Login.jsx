@@ -18,13 +18,34 @@ export default function Login({ onNavigate, onLogin }) {
   }, []);
 
   const attemptLogin = async (email, password) => {
-    const res = await axios.post("/api/auth/login", { email, password });
+    // Read stored device trust token for this email
+    let deviceToken;
+    try {
+      const stored = JSON.parse(localStorage.getItem("winechain_device") || "null");
+      if (stored?.email === email && stored?.token) deviceToken = stored.token;
+    } catch {}
+
+    const res = await axios.post("/api/auth/login", { email, password, deviceToken });
+
+    // Trusted device — skip OTP entirely
+    if (res.data.skipOtp) {
+      localStorage.setItem("winechain_token", res.data.token);
+      localStorage.setItem("winechain_user", JSON.stringify(res.data.user));
+      // Refresh the stored device token
+      localStorage.setItem("winechain_device", JSON.stringify({
+        email: res.data.user.email,
+        token: res.data.deviceToken,
+      }));
+      toast.success(`Welcome back, ${res.data.user.name}!`);
+      onLogin(res.data.user, res.data.token);
+      return;
+    }
+
     if (res.data.emailSent) {
       toast.success("Verification code sent to your email!");
     } else {
       toast.info("Email unavailable — your code is shown on the next screen.");
     }
-    // Pass both userId and optional fallbackCode to the verify screen
     onNavigate("verify2fa", {
       userId: res.data.userId,
       fallbackCode: res.data.fallbackCode || null,

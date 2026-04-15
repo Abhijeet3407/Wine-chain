@@ -23,7 +23,6 @@ const NAV = [
   { id: "add", icon: "+", label: "Register" },
   { id: "verify", icon: "✓", label: "Verify" },
   { id: "ledger", icon: "≣", label: "Ledger" },
-  { id: "profile", icon: "◎", label: "Profile", authOnly: true },
 ];
 
 export default function App() {
@@ -71,6 +70,7 @@ export default function App() {
   const handleLogout = () => {
     localStorage.removeItem("winechain_token");
     localStorage.removeItem("winechain_user");
+    // winechain_device is intentionally kept — enables 2-hour OTP bypass on re-login
     setUser(null);
     setToken(null);
     setPage("home");
@@ -135,7 +135,7 @@ export default function App() {
         </div>
 
         <div className="topnav-links">
-          {NAV.filter((n) => !n.authOnly || user).map((n) => (
+          {NAV.map((n) => (
             <button
               key={n.id}
               className={`nav-item ${page === n.id ? "active" : ""}`}

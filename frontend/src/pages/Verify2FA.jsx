@@ -17,6 +17,13 @@ export default function Verify2FA({ userId, prefillCode, onLogin, onNavigate }) 
       const res = await axios.post("/api/auth/verify-2fa", { userId, code });
       localStorage.setItem("winechain_token", res.data.token);
       localStorage.setItem("winechain_user", JSON.stringify(res.data.user));
+      // Store device trust token — survives logout, valid for 2 hours
+      if (res.data.deviceToken) {
+        localStorage.setItem("winechain_device", JSON.stringify({
+          email: res.data.user.email,
+          token: res.data.deviceToken,
+        }));
+      }
       toast.success(`Welcome back, ${res.data.user.name}!`);
       onLogin(res.data.user, res.data.token);
     } catch (e) {

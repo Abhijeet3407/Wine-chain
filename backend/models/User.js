@@ -15,6 +15,8 @@ const userSchema = new mongoose.Schema(
     twoFactorCode: { type: String, default: null },
     twoFactorExpiry: { type: Date, default: null },
     twoFactorVerified: { type: Boolean, default: false },
+    deviceToken: { type: String, default: null },
+    deviceTokenExpiry: { type: Date, default: null },
     isActive: { type: Boolean, default: true },
     lastLogin: { type: Date, default: null },
   },
