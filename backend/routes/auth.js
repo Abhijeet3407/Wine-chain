@@ -85,7 +85,7 @@ router.post("/login", async (req, res) => {
         skipOtp: true,
         token,
         deviceToken: user.deviceToken,
-        user: { id: user._id, name: user.name, email: user.email },
+        user: { id: user._id, name: user.name, email: user.email, createdAt: user.createdAt, lastLogin: user.lastLogin },
       });
     }
 
@@ -156,6 +156,8 @@ router.post("/verify-2fa", async (req, res) => {
         id: user._id,
         name: user.name,
         email: user.email,
+        createdAt: user.createdAt,
+        lastLogin: user.lastLogin,
       },
     });
   } catch (err) {
@@ -201,7 +203,7 @@ router.put("/profile", protect, async (req, res) => {
 
     res.json({
       success: true,
-      user: { id: user._id, name: user.name, email: user.email },
+      user: { id: user._id, name: user.name, email: user.email, createdAt: user.createdAt, lastLogin: user.lastLogin },
     });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
