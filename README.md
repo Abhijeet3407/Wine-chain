@@ -1,6 +1,6 @@
 # Wine Chain — Blockchain Wine Inventory System
 
-A full-stack blockchain-based wine inventory and marketplace platform with user authentication, two-factor login, per-user ownership tracking, and a peer-to-peer marketplace.
+A full-stack blockchain-based wine inventory and marketplace platform with user authentication, two-factor login, per-user ownership tracking, a peer-to-peer marketplace, and Stripe-powered payments — blockchain ownership only transfers after payment is confirmed.
 
 ---
 
@@ -14,6 +14,7 @@ A full-stack blockchain-based wine inventory and marketplace platform with user 
 - **Blockchain ledger** — Browse every block ever written to the chain
 - **Dashboard** — Portfolio stats with per-user filtering and chain validity indicator
 - **Marketplace** — List bottles for sale, make offers, buy now, accept/reject offers
+- **Stripe payments** — Card payments collected via Stripe Elements; blockchain ownership transfer only happens after payment is confirmed via webhook
 - **Image uploads** — Cloudinary-backed bottle photo storage
 - **Mobile responsive** — Bottom tab navigation on small screens
 
@@ -29,6 +30,7 @@ A full-stack blockchain-based wine inventory and marketplace platform with user 
 | Blockchain   | SHA-256 Proof-of-Work (custom, difficulty 2)    |
 | Auth         | JWT (jsonwebtoken), bcrypt                      |
 | 2FA / Email  | Resend API (transactional email)                |
+| Payments     | Stripe (PaymentIntents + Webhooks)              |
 | Image Upload | Cloudinary + multer-storage-cloudinary          |
 | Deployment   | Vercel (frontend) + Render (backend)            |
 
@@ -46,17 +48,18 @@ wine-chain/
 │   ├── models/
 │   │   ├── Block.js              MongoDB Block schema
 │   │   ├── Bottle.js             Bottle schema (registeredBy, ownerEmail)
-│   │   ├── Listing.js            Marketplace listing schema
+│   │   ├── Listing.js            Marketplace listing schema (includes AwaitingPayment status)
+│   │   ├── Offer.js              Offer schema (includes AwaitingPayment status + stripePaymentIntentId)
 │   │   └── User.js               User schema (JWT, 2FA, device trust)
 │   ├── routes/
 │   │   ├── auth.js               Signup, login, 2FA verify, profile, logout
 │   │   ├── bottles.js            Bottle CRUD + verify (auth-protected)
 │   │   ├── chain.js              Ledger endpoints
-│   │   ├── marketplace.js        Listings, offers, buy-now, accept/reject
+│   │   ├── marketplace.js        Listings, offers, buy-now, Stripe webhook, payment details
 │   │   └── stats.js              Per-user dashboard stats + analytics
-│   ├── mailer.js                 Resend email helpers (2FA, welcome, marketplace)
+│   ├── mailer.js                 Resend email helpers (2FA, welcome, marketplace, payment request)
 │   ├── .env                      Environment variables (not committed)
-│   ├── server.js                 Express entry point
+│   ├── server.js                 Express entry point (raw body middleware for Stripe webhook)
 │   └── package.json
 ├── frontend/
 │   ├── public/
@@ -73,12 +76,13 @@ wine-chain/
 │   │   │   ├── AddBottle.jsx     Register a new bottle
 │   │   │   ├── Verify.jsx        Verify bottle authenticity
 │   │   │   ├── Ledger.jsx        Full blockchain ledger
-│   │   │   └── Marketplace.jsx   Buy, sell, offers
+│   │   │   ├── Marketplace.jsx   Buy, sell, offers
+│   │   │   └── Payment.jsx       Stripe card payment page (no login required)
 │   │   ├── utils/
 │   │   │   └── api.js            Axios instance + all API calls
 │   │   ├── styles/
 │   │   │   └── App.css           Global styles + mobile responsive
-│   │   ├── App.jsx               Routing, nav, auth state
+│   │   ├── App.jsx               Routing, nav, auth state (detects ?pi= for payment page)
 │   │   └── index.js              React entry point
 │   ├── vercel.json               Rewrites /api/* → Render backend
 │   └── package.json
@@ -86,6 +90,31 @@ wine-chain/
 ├── .gitignore
 └── README.md
 ```
+
+---
+
+## Payment Flow
+
+Blockchain ownership only transfers **after payment is received**, not at the point of offer acceptance.
+
+```
+Seller accepts offer / confirms buy-now
+        ↓
+Stripe PaymentIntent created (GBP)
+Listing status → AwaitingPayment (blocks new offers)
+Buyer receives "Pay Now" email with unique payment link
+        ↓
+Buyer visits /?pi=<paymentIntentId>
+Stripe card form collects payment (no account needed)
+        ↓
+Stripe webhook fires → payment_intent.succeeded
+Blockchain block mined → ownership transferred on-chain
+Confirmation emails sent to buyer and seller
+```
+
+**Offer statuses:** `Pending` → `AwaitingPayment` → `Accepted` (or `Rejected`)
+
+**Listing statuses:** `Active` → `Pending` → `AwaitingPayment` → `Sold` (or `Unlisted`)
 
 ---
 
@@ -129,17 +158,19 @@ wine-chain/
 
 ### Marketplace — `/api/marketplace`
 
-| Method | Endpoint                              | Auth | Description                           |
-|--------|---------------------------------------|------|---------------------------------------|
-| GET    | /                                     | JWT  | List active marketplace listings      |
-| POST   | /                                     | JWT  | Create a new listing                  |
-| DELETE | /:id                                  | JWT  | Unlist a bottle (seller only)         |
-| POST   | /:id/buy                              | JWT  | Initiate a buy-now purchase           |
-| POST   | /:id/buy/confirm                      | JWT  | Confirm buy-now (seller confirms)     |
-| POST   | /:id/offers                           | JWT  | Make an offer                         |
-| GET    | /:id/offers                           | JWT  | Get all offers for a listing          |
-| POST   | /:id/offers/:offerId/accept           | JWT  | Accept an offer                       |
-| POST   | /:id/offers/:offerId/reject           | JWT  | Reject an offer                       |
+| Method | Endpoint                              | Auth        | Description                                                      |
+|--------|---------------------------------------|-------------|------------------------------------------------------------------|
+| POST   | /webhook                              | Stripe sig  | Stripe webhook — confirms payment and triggers blockchain update |
+| GET    | /payment/:paymentIntentId             | No          | Get payment details (client secret) for the payment page        |
+| GET    | /                                     | No          | List Active / Pending / AwaitingPayment listings                 |
+| POST   | /                                     | JWT         | Create a new listing                                             |
+| DELETE | /:id                                  | JWT         | Unlist a bottle (seller only)                                    |
+| POST   | /:id/buy                              | No          | Buyer submits a buy-now request; notifies seller                 |
+| POST   | /:id/buy/confirm                      | JWT         | Seller confirms; creates Stripe PaymentIntent, emails buyer      |
+| POST   | /:id/offers                           | No          | Make an offer; notifies seller                                   |
+| GET    | /:id/offers                           | JWT         | Get all offers for a listing (seller only)                       |
+| POST   | /:id/offers/:offerId/accept           | JWT         | Seller accepts offer; creates Stripe PaymentIntent, emails buyer |
+| POST   | /:id/offers/:offerId/reject           | JWT         | Reject an offer; notifies buyer                                  |
 
 ---
 
@@ -162,9 +193,22 @@ RESEND_FROM_EMAIL=Wine Chain <onboarding@resend.dev>
 CLOUDINARY_CLOUD_NAME=your_cloud_name
 CLOUDINARY_API_KEY=your_api_key
 CLOUDINARY_API_SECRET=your_api_secret
+
+# Stripe (https://stripe.com)
+STRIPE_SECRET_KEY=sk_live_xxxxxxxxxxxx
+STRIPE_WEBHOOK_SECRET=whsec_xxxxxxxxxxxx
+
+# Frontend URL (used in payment emails)
+FRONTEND_URL=https://your-app.vercel.app
 ```
 
-> For production email delivery to any address (not just your own Resend-verified domain), add and verify a custom domain in the Resend dashboard and update `RESEND_FROM_EMAIL` accordingly.
+### Frontend (`frontend/.env`)
+
+```env
+REACT_APP_STRIPE_PUBLISHABLE_KEY=pk_live_xxxxxxxxxxxx
+```
+
+> For production email delivery to any address, add and verify a custom domain in the Resend dashboard and update `RESEND_FROM_EMAIL` accordingly.
 
 ---
 
@@ -176,6 +220,8 @@ CLOUDINARY_API_SECRET=your_api_secret
 - A MongoDB Atlas free cluster (or local MongoDB)
 - Resend account + API key
 - Cloudinary account
+- Stripe account (test keys are fine for local dev)
+- Stripe CLI (to forward webhooks locally)
 
 ### Install dependencies
 
@@ -185,14 +231,20 @@ npm run install:all
 
 ### Configure environment
 
-Create `backend/.env` from the template above.
+Create `backend/.env` from the template above using Stripe **test** keys (`sk_test_...`, `whsec_...`).
 
-For local frontend development, create `frontend/.env`:
+Create `frontend/.env`:
 ```env
-REACT_APP_API_URL=http://localhost:5000
+REACT_APP_STRIPE_PUBLISHABLE_KEY=pk_test_xxxxxxxxxxxx
 ```
 
-The Vite/CRA dev proxy is already set up in `package.json` to forward `/api` requests to `localhost:5000`.
+### Forward Stripe webhooks locally
+
+```bash
+stripe listen --forward-to localhost:5000/api/marketplace/webhook
+```
+
+Copy the `whsec_...` secret it prints and set it as `STRIPE_WEBHOOK_SECRET` in `backend/.env`.
 
 ### Run
 
@@ -219,6 +271,8 @@ The project is deployed in a split-host configuration:
 `frontend/vercel.json` rewrites all `/api/*` requests to the Render backend URL so there are no CORS issues.
 
 The login page includes automatic retry logic (up to 7 attempts, 10s apart) to handle Render's free-tier cold start gracefully.
+
+**Stripe webhook in production:** Register `https://your-render-api.onrender.com/api/marketplace/webhook` in the Stripe dashboard under Webhooks, listening for the `payment_intent.succeeded` event. Copy the generated `whsec_...` signing secret into Render's environment variables.
 
 ---
 
