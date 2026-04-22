@@ -1,5 +1,6 @@
 const express = require("express");
 const router = express.Router();
+const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 const Listing = require("../models/Listing");
 const Offer = require("../models/Offer");
 const Bottle = require("../models/Bottle");
@@ -9,10 +10,10 @@ const { Block: ChainBlock, Blockchain } = require("../blockchain/chain");
 const {
   sendBuyNowRequestToSeller,
   sendOfferToSeller,
-  sendOfferAcceptedToBuyer,
   sendOfferRejectedToBuyer,
   sendSaleConfirmedToSeller,
   sendSaleConfirmedToBuyer,
+  sendPaymentRequestToBuyer,
 } = require("../mailer");
 
 const blockchain = new Blockchain();
@@ -46,16 +47,152 @@ async function addBlockToChain(data, bottleId = null) {
   return saved;
 }
 
-// GET / — Browse all Active+Pending listings
+// Stripe webhook — must be registered with raw body in server.js before express.json()
+router.post("/webhook", async (req, res) => {
+  const sig = req.headers["stripe-signature"];
+  let event;
+
+  try {
+    event = stripe.webhooks.constructEvent(
+      req.body,
+      sig,
+      process.env.STRIPE_WEBHOOK_SECRET
+    );
+  } catch (err) {
+    console.error("Webhook signature error:", err.message);
+    return res.status(400).send(`Webhook Error: ${err.message}`);
+  }
+
+  if (event.type === "payment_intent.succeeded") {
+    const pi = event.data.object;
+    const { type, offerId, listingId } = pi.metadata;
+
+    try {
+      if (type === "offer") {
+        const offer = await Offer.findById(offerId);
+        const listing = await Listing.findById(listingId).populate("bottle");
+        if (!offer || !listing) return res.json({ received: true });
+
+        const bottle = listing.bottle;
+
+        const block = await addBlockToChain(
+          {
+            type: "MARKETPLACE_OFFER_ACCEPTED",
+            bottleId: bottle.bottleId,
+            fromOwner: bottle.currentOwner,
+            toOwner: offer.buyerName,
+            price: offer.offerPrice,
+            listingId: listing._id.toString(),
+            offerId: offer._id.toString(),
+            action: `Offer accepted: "${bottle.name}" ${bottle.vintage} from ${bottle.currentOwner} to ${offer.buyerName} for £${offer.offerPrice}`,
+          },
+          bottle._id
+        );
+
+        bottle.transferHistory.push({
+          fromOwner: bottle.currentOwner,
+          toOwner: offer.buyerName,
+          price: offer.offerPrice,
+          notes: "Marketplace offer accepted",
+          blockHash: block.hash,
+        });
+        bottle.currentOwner = offer.buyerName;
+        bottle.status = "Transferred";
+        bottle.latestBlockHash = block.hash;
+        bottle.blockIndices.push(block.index);
+        await bottle.save();
+
+        offer.status = "Accepted";
+        await offer.save();
+
+        listing.status = "Sold";
+        await listing.save();
+
+        try {
+          await sendSaleConfirmedToBuyer(offer.buyerEmail, offer.buyerName, bottle, offer.offerPrice);
+        } catch (e) { console.error("Mail error:", e.message); }
+        try {
+          await sendSaleConfirmedToSeller(listing.sellerEmail, listing.sellerName, offer.buyerName, bottle, offer.offerPrice);
+        } catch (e) { console.error("Mail error:", e.message); }
+
+      } else if (type === "buy_now") {
+        const listing = await Listing.findById(listingId).populate("bottle");
+        if (!listing) return res.json({ received: true });
+
+        const bottle = listing.bottle;
+        const buyer = listing.pendingBuyer;
+
+        const block = await addBlockToChain(
+          {
+            type: "MARKETPLACE_SALE",
+            bottleId: bottle.bottleId,
+            fromOwner: bottle.currentOwner,
+            toOwner: buyer.name,
+            price: listing.askingPrice,
+            listingId: listing._id.toString(),
+            action: `Marketplace sale: "${bottle.name}" ${bottle.vintage} from ${bottle.currentOwner} to ${buyer.name} for £${listing.askingPrice}`,
+          },
+          bottle._id
+        );
+
+        bottle.transferHistory.push({
+          fromOwner: bottle.currentOwner,
+          toOwner: buyer.name,
+          price: listing.askingPrice,
+          notes: "Marketplace sale",
+          blockHash: block.hash,
+        });
+        bottle.currentOwner = buyer.name;
+        bottle.status = "Transferred";
+        bottle.latestBlockHash = block.hash;
+        bottle.blockIndices.push(block.index);
+        await bottle.save();
+
+        listing.status = "Sold";
+        await listing.save();
+
+        try {
+          await sendSaleConfirmedToBuyer(buyer.email, buyer.name, bottle, listing.askingPrice);
+        } catch (e) { console.error("Mail error:", e.message); }
+        try {
+          await sendSaleConfirmedToSeller(listing.sellerEmail, listing.sellerName, buyer.name, bottle, listing.askingPrice);
+        } catch (e) { console.error("Mail error:", e.message); }
+      }
+    } catch (err) {
+      console.error("Webhook processing error:", err.message);
+    }
+  }
+
+  res.json({ received: true });
+});
+
+// GET /payment/:paymentIntentId — return client secret so frontend can render Stripe Elements
+router.get("/payment/:paymentIntentId", async (req, res) => {
+  try {
+    const pi = await stripe.paymentIntents.retrieve(req.params.paymentIntentId);
+    res.json({
+      success: true,
+      clientSecret: pi.client_secret,
+      amount: pi.amount,
+      currency: pi.currency,
+      bottleName: pi.metadata.bottleName || "",
+      buyerName: pi.metadata.buyerName || "",
+      status: pi.status,
+    });
+  } catch (err) {
+    res.status(404).json({ success: false, error: "Payment not found" });
+  }
+});
+
+// GET / — Browse all Active, Pending, and AwaitingPayment listings
 router.get("/", async (req, res) => {
   try {
     const { search, type, minPrice, maxPrice } = req.query;
 
     let listings = await Listing.find({
-      status: { $in: ["Active", "Pending"] },
+      status: { $in: ["Active", "Pending", "AwaitingPayment"] },
     }).populate("bottle");
 
-    // Filter in JS after fetching
     if (search) {
       const s = search.toLowerCase();
       listings = listings.filter((l) => {
@@ -99,26 +236,20 @@ router.post("/", protect, async (req, res) => {
         .json({ success: false, error: "Missing required fields" });
     }
 
-    // Find bottle by bottleId string OR _id
     const bottle = await Bottle.findOne({
       $or: [
-        {
-          _id: bottleId.match(/^[a-f\d]{24}$/i) ? bottleId : null,
-        },
+        { _id: bottleId.match(/^[a-f\d]{24}$/i) ? bottleId : null },
         { bottleId: bottleId },
       ],
     });
 
     if (!bottle) {
-      return res
-        .status(404)
-        .json({ success: false, error: "Bottle not found" });
+      return res.status(404).json({ success: false, error: "Bottle not found" });
     }
 
-    // Check no existing Active/Pending listing for this bottle
     const existing = await Listing.findOne({
       bottle: bottle._id,
-      status: { $in: ["Active", "Pending"] },
+      status: { $in: ["Active", "Pending", "AwaitingPayment"] },
     });
 
     if (existing) {
@@ -151,9 +282,7 @@ router.delete("/:id", protect, async (req, res) => {
   try {
     const listing = await Listing.findById(req.params.id);
     if (!listing) {
-      return res
-        .status(404)
-        .json({ success: false, error: "Listing not found" });
+      return res.status(404).json({ success: false, error: "Listing not found" });
     }
 
     if (listing.sellerUserId.toString() !== req.user._id.toString()) {
@@ -162,7 +291,6 @@ router.delete("/:id", protect, async (req, res) => {
         .json({ success: false, error: "Not authorized to unlist this bottle" });
     }
 
-    // Reject all Pending offers on this listing
     await Offer.updateMany(
       { listing: listing._id, status: "Pending" },
       { status: "Rejected" }
@@ -177,7 +305,7 @@ router.delete("/:id", protect, async (req, res) => {
   }
 });
 
-// POST /:id/buy — Buyer submits Buy Now
+// POST /:id/buy — Buyer submits Buy Now request
 router.post("/:id/buy", async (req, res) => {
   try {
     const { buyerName, buyerEmail } = req.body;
@@ -190,15 +318,11 @@ router.post("/:id/buy", async (req, res) => {
 
     const listing = await Listing.findById(req.params.id).populate("bottle");
     if (!listing) {
-      return res
-        .status(404)
-        .json({ success: false, error: "Listing not found" });
+      return res.status(404).json({ success: false, error: "Listing not found" });
     }
 
     if (listing.status !== "Active") {
-      return res
-        .status(400)
-        .json({ success: false, error: "Listing is not active" });
+      return res.status(400).json({ success: false, error: "Listing is not active" });
     }
 
     if (listing.listingType !== "Fixed Price") {
@@ -208,14 +332,9 @@ router.post("/:id/buy", async (req, res) => {
     }
 
     listing.status = "Pending";
-    listing.pendingBuyer = {
-      name: buyerName,
-      email: buyerEmail,
-      requestedAt: new Date(),
-    };
+    listing.pendingBuyer = { name: buyerName, email: buyerEmail, requestedAt: new Date() };
     await listing.save();
 
-    // Send notification to seller
     try {
       await sendBuyNowRequestToSeller(
         listing.sellerEmail,
@@ -234,14 +353,12 @@ router.post("/:id/buy", async (req, res) => {
   }
 });
 
-// POST /:id/buy/confirm — Seller confirms sale (protected)
+// POST /:id/buy/confirm — Seller confirms sale; creates Stripe PaymentIntent for buyer to pay
 router.post("/:id/buy/confirm", protect, async (req, res) => {
   try {
     const listing = await Listing.findById(req.params.id).populate("bottle");
     if (!listing) {
-      return res
-        .status(404)
-        .json({ success: false, error: "Listing not found" });
+      return res.status(404).json({ success: false, error: "Listing not found" });
     }
 
     if (listing.status !== "Pending") {
@@ -259,55 +376,28 @@ router.post("/:id/buy/confirm", protect, async (req, res) => {
     const bottle = listing.bottle;
     const buyer = listing.pendingBuyer;
 
-    // Mine blockchain block
-    const blockData = {
-      type: "MARKETPLACE_SALE",
-      bottleId: bottle.bottleId,
-      fromOwner: bottle.currentOwner,
-      toOwner: buyer.name,
-      price: listing.askingPrice,
-      listingId: listing._id.toString(),
-      action: `Marketplace sale: "${bottle.name}" ${bottle.vintage} from ${bottle.currentOwner} to ${buyer.name} for £${listing.askingPrice}`,
-    };
-
-    const block = await addBlockToChain(blockData, bottle._id);
-
-    // Update bottle
-    bottle.transferHistory.push({
-      fromOwner: bottle.currentOwner,
-      toOwner: buyer.name,
-      price: listing.askingPrice,
-      notes: `Marketplace sale`,
-      blockHash: block.hash,
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount: Math.round(listing.askingPrice * 100),
+      currency: "gbp",
+      metadata: {
+        type: "buy_now",
+        listingId: listing._id.toString(),
+        bottleName: `${bottle.name} ${bottle.vintage}`,
+        buyerName: buyer.name,
+      },
     });
-    bottle.currentOwner = buyer.name;
-    bottle.status = "Transferred";
-    bottle.latestBlockHash = block.hash;
-    bottle.blockIndices.push(block.index);
-    await bottle.save();
 
-    listing.status = "Sold";
+    listing.status = "AwaitingPayment";
+    listing.stripePaymentIntentId = paymentIntent.id;
     await listing.save();
 
-    // Send notifications
     try {
-      await sendSaleConfirmedToSeller(
-        listing.sellerEmail,
-        listing.sellerName,
-        buyer.name,
-        bottle,
-        listing.askingPrice
-      );
-    } catch (mailErr) {
-      console.error("Mail error:", mailErr.message);
-    }
-
-    try {
-      await sendSaleConfirmedToBuyer(
+      await sendPaymentRequestToBuyer(
         buyer.email,
         buyer.name,
         bottle,
-        listing.askingPrice
+        listing.askingPrice,
+        paymentIntent.id
       );
     } catch (mailErr) {
       console.error("Mail error:", mailErr.message);
@@ -332,15 +422,11 @@ router.post("/:id/offers", async (req, res) => {
 
     const listing = await Listing.findById(req.params.id).populate("bottle");
     if (!listing) {
-      return res
-        .status(404)
-        .json({ success: false, error: "Listing not found" });
+      return res.status(404).json({ success: false, error: "Listing not found" });
     }
 
     if (listing.status !== "Active") {
-      return res
-        .status(400)
-        .json({ success: false, error: "Listing is not active" });
+      return res.status(400).json({ success: false, error: "Listing is not active" });
     }
 
     const offer = await Offer.create({
@@ -351,7 +437,6 @@ router.post("/:id/offers", async (req, res) => {
       message: message || "",
     });
 
-    // Send notification to seller
     try {
       await sendOfferToSeller(
         listing.sellerEmail,
@@ -377,9 +462,7 @@ router.get("/:id/offers", protect, async (req, res) => {
   try {
     const listing = await Listing.findById(req.params.id);
     if (!listing) {
-      return res
-        .status(404)
-        .json({ success: false, error: "Listing not found" });
+      return res.status(404).json({ success: false, error: "Listing not found" });
     }
 
     if (listing.sellerUserId.toString() !== req.user._id.toString()) {
@@ -388,9 +471,7 @@ router.get("/:id/offers", protect, async (req, res) => {
         .json({ success: false, error: "Not authorized to view these offers" });
     }
 
-    const offers = await Offer.find({ listing: listing._id }).sort({
-      createdAt: -1,
-    });
+    const offers = await Offer.find({ listing: listing._id }).sort({ createdAt: -1 });
 
     res.json({ success: true, data: offers });
   } catch (err) {
@@ -398,20 +479,16 @@ router.get("/:id/offers", protect, async (req, res) => {
   }
 });
 
-// POST /:id/offers/:offerId/accept — Accept offer (protected)
+// POST /:id/offers/:offerId/accept — Seller accepts; creates Stripe PaymentIntent for buyer to pay
 router.post("/:id/offers/:offerId/accept", protect, async (req, res) => {
   try {
     const listing = await Listing.findById(req.params.id).populate("bottle");
     if (!listing) {
-      return res
-        .status(404)
-        .json({ success: false, error: "Listing not found" });
+      return res.status(404).json({ success: false, error: "Listing not found" });
     }
 
     if (listing.status !== "Active") {
-      return res
-        .status(400)
-        .json({ success: false, error: "Listing is not active" });
+      return res.status(400).json({ success: false, error: "Listing is not active" });
     }
 
     if (listing.sellerUserId.toString() !== req.user._id.toString()) {
@@ -422,83 +499,51 @@ router.post("/:id/offers/:offerId/accept", protect, async (req, res) => {
 
     const offer = await Offer.findById(req.params.offerId);
     if (!offer) {
-      return res
-        .status(404)
-        .json({ success: false, error: "Offer not found" });
+      return res.status(404).json({ success: false, error: "Offer not found" });
     }
 
     if (offer.status !== "Pending") {
-      return res
-        .status(400)
-        .json({ success: false, error: "Offer is not in Pending state" });
+      return res.status(400).json({ success: false, error: "Offer is not in Pending state" });
     }
 
     const bottle = listing.bottle;
 
-    // Mine blockchain block
-    const blockData = {
-      type: "MARKETPLACE_OFFER_ACCEPTED",
-      bottleId: bottle.bottleId,
-      fromOwner: bottle.currentOwner,
-      toOwner: offer.buyerName,
-      price: offer.offerPrice,
-      listingId: listing._id.toString(),
-      offerId: offer._id.toString(),
-      action: `Offer accepted: "${bottle.name}" ${bottle.vintage} from ${bottle.currentOwner} to ${offer.buyerName} for £${offer.offerPrice}`,
-    };
-
-    const block = await addBlockToChain(blockData, bottle._id);
-
-    // Update bottle
-    bottle.transferHistory.push({
-      fromOwner: bottle.currentOwner,
-      toOwner: offer.buyerName,
-      price: offer.offerPrice,
-      notes: `Marketplace offer accepted`,
-      blockHash: block.hash,
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount: Math.round(offer.offerPrice * 100),
+      currency: "gbp",
+      metadata: {
+        type: "offer",
+        offerId: offer._id.toString(),
+        listingId: listing._id.toString(),
+        bottleName: `${bottle.name} ${bottle.vintage}`,
+        buyerName: offer.buyerName,
+      },
     });
-    bottle.currentOwner = offer.buyerName;
-    bottle.status = "Transferred";
-    bottle.latestBlockHash = block.hash;
-    bottle.blockIndices.push(block.index);
-    await bottle.save();
 
-    // Accept the winning offer
-    offer.status = "Accepted";
+    // Mark offer as awaiting payment
+    offer.status = "AwaitingPayment";
+    offer.stripePaymentIntentId = paymentIntent.id;
     await offer.save();
 
-    // Reject all other Pending offers
+    // Reject all other pending offers now
     await Offer.updateMany(
-      {
-        listing: listing._id,
-        _id: { $ne: offer._id },
-        status: "Pending",
-      },
+      { listing: listing._id, _id: { $ne: offer._id }, status: "Pending" },
       { status: "Rejected" }
     );
 
-    listing.status = "Sold";
+    // Lock listing so no new offers come in
+    listing.status = "AwaitingPayment";
+    listing.stripePaymentIntentId = paymentIntent.id;
     await listing.save();
 
-    // Send notifications
+    // Send payment link to buyer
     try {
-      await sendOfferAcceptedToBuyer(
+      await sendPaymentRequestToBuyer(
         offer.buyerEmail,
         offer.buyerName,
         bottle,
-        offer.offerPrice
-      );
-    } catch (mailErr) {
-      console.error("Mail error:", mailErr.message);
-    }
-
-    try {
-      await sendSaleConfirmedToSeller(
-        listing.sellerEmail,
-        listing.sellerName,
-        offer.buyerName,
-        bottle,
-        offer.offerPrice
+        offer.offerPrice,
+        paymentIntent.id
       );
     } catch (mailErr) {
       console.error("Mail error:", mailErr.message);
@@ -515,9 +560,7 @@ router.post("/:id/offers/:offerId/reject", protect, async (req, res) => {
   try {
     const listing = await Listing.findById(req.params.id).populate("bottle");
     if (!listing) {
-      return res
-        .status(404)
-        .json({ success: false, error: "Listing not found" });
+      return res.status(404).json({ success: false, error: "Listing not found" });
     }
 
     if (listing.sellerUserId.toString() !== req.user._id.toString()) {
@@ -528,15 +571,12 @@ router.post("/:id/offers/:offerId/reject", protect, async (req, res) => {
 
     const offer = await Offer.findById(req.params.offerId);
     if (!offer) {
-      return res
-        .status(404)
-        .json({ success: false, error: "Offer not found" });
+      return res.status(404).json({ success: false, error: "Offer not found" });
     }
 
     offer.status = "Rejected";
     await offer.save();
 
-    // Send notification to buyer
     try {
       const bottle = listing.bottle;
       await sendOfferRejectedToBuyer(

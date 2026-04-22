@@ -37,3 +37,4 @@ export const makeOffer = (id, data) => API.post(`/marketplace/${id}/offers`, dat
 export const getOffers = (id) => API.get(`/marketplace/${id}/offers`);
 export const acceptOffer = (id, offerId) => API.post(`/marketplace/${id}/offers/${offerId}/accept`);
 export const rejectOffer = (id, offerId) => API.post(`/marketplace/${id}/offers/${offerId}/reject`);
+export const getPaymentDetails = (paymentIntentId) => API.get(`/marketplace/payment/${paymentIntentId}`);

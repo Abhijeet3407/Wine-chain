@@ -13,6 +13,7 @@ import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import Verify2FA from "./pages/Verify2FA";
 import Profile from "./pages/Profile";
+import Payment from "./pages/Payment";
 import { validateChain } from "./utils/api";
 
 const NAV = [
@@ -26,7 +27,8 @@ const NAV = [
 ];
 
 export default function App() {
-  const [page, setPage] = useState("home");
+  const piParam = new URLSearchParams(window.location.search).get("pi");
+  const [page, setPage] = useState(piParam ? "pay" : "home");
   const [extra, setExtra] = useState(null);
   const [chainValid, setChainValid] = useState(null);
   const [user, setUser] = useState(null);
@@ -97,7 +99,7 @@ export default function App() {
           <ToastContainer position="bottom-right" autoClose={3000} />
         </>
       );
-    if (page !== "home" && page !== "login") {
+    if (page !== "home" && page !== "login" && page !== "pay") {
       return (
         <>
           <Login onNavigate={navigate} onLogin={handleLogin} />
@@ -117,6 +119,7 @@ export default function App() {
     ledger: <Ledger />,
     login: <Login onNavigate={navigate} onLogin={handleLogin} />,
     profile: <Profile user={user} onUpdate={handleProfileUpdate} />,
+    pay: <Payment />,
   };
 
   return (

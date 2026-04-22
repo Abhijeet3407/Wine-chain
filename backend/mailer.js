@@ -240,6 +240,39 @@ const sendSaleConfirmedToBuyer = async (buyerEmail, buyerName, bottle, price) =>
     `,
   });
 
+const sendPaymentRequestToBuyer = async (buyerEmail, buyerName, bottle, price, paymentIntentId) => {
+  const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
+  const paymentUrl = `${frontendUrl}/?pi=${paymentIntentId}`;
+  return sendMail({
+    to: buyerEmail,
+    subject: "Action Required: Complete Your Payment — Wine Chain",
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 32px; background: #f8f7f4; border-radius: 12px;">
+        <div style="text-align: center; margin-bottom: 24px;">
+          <h1 style="color: #7b1c2e; font-size: 28px; margin: 0;">🍷 Wine Chain</h1>
+          <p style="color: #888; font-size: 13px;">Blockchain Wine Inventory</p>
+        </div>
+        <div style="background: #fff; border-radius: 12px; padding: 28px; border: 1px solid #ece9e2;">
+          <h2 style="font-size: 18px; color: #1a1a1a; margin-bottom: 8px;">Complete Your Purchase</h2>
+          <p style="color: #555; font-size: 14px; margin-bottom: 20px;">Hello ${buyerName}, your offer has been accepted! Please complete payment to finalise the transfer.</p>
+          <div style="background: #f0faf0; border-radius: 10px; padding: 16px; margin-bottom: 20px; border: 1px solid #c3e6cb;">
+            <p style="color: #155724; font-size: 13px; margin: 0;">✅ The seller has accepted your offer.</p>
+          </div>
+          <table style="width: 100%; font-size: 13px; border-collapse: collapse; margin-bottom: 24px;">
+            <tr><td style="padding: 8px 0; color: #888;">Bottle</td><td style="padding: 8px 0; font-weight: bold;">${bottle.name} ${bottle.vintage}</td></tr>
+            <tr><td style="padding: 8px 0; color: #888;">Producer</td><td style="padding: 8px 0;">${bottle.producer}</td></tr>
+            <tr><td style="padding: 8px 0; color: #888;">Region</td><td style="padding: 8px 0;">${bottle.region}</td></tr>
+            <tr><td style="padding: 8px 0; color: #888;">Amount Due</td><td style="padding: 8px 0; font-weight: bold; color: #7b1c2e; font-size: 16px;">£${price}</td></tr>
+          </table>
+          <a href="${paymentUrl}" style="display: block; text-align: center; background: #7b1c2e; color: #fff; text-decoration: none; padding: 14px 24px; border-radius: 8px; font-weight: 700; font-size: 15px;">Pay Now — £${price}</a>
+          <p style="color: #aaa; font-size: 11px; text-align: center; margin-top: 16px;">This payment link is unique to your purchase. Once payment is confirmed, ownership will be recorded on the blockchain.</p>
+        </div>
+        <p style="color: #ccc; font-size: 11px; text-align: center; margin-top: 20px;">Wine Chain · Blockchain Wine Inventory System</p>
+      </div>
+    `,
+  });
+};
+
 module.exports = {
   send2FACode,
   sendTransferNotification,
@@ -250,4 +283,5 @@ module.exports = {
   sendOfferRejectedToBuyer,
   sendSaleConfirmedToSeller,
   sendSaleConfirmedToBuyer,
+  sendPaymentRequestToBuyer,
 };

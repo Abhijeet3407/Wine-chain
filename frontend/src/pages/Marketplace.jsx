@@ -270,14 +270,16 @@ export default function Marketplace({ user, token, onNavigate }) {
                   >
                     ◆ Verified
                   </div>
-                  {/* Status badge for Pending */}
-                  {listing.status === "Pending" && (
+                  {/* Status badge for Pending / AwaitingPayment */}
+                  {(listing.status === "Pending" || listing.status === "AwaitingPayment") && (
                     <div
                       style={{
                         position: "absolute",
                         top: 10,
                         right: 10,
-                        background: "rgba(180, 130, 0, 0.92)",
+                        background: listing.status === "AwaitingPayment"
+                          ? "rgba(100, 60, 160, 0.92)"
+                          : "rgba(180, 130, 0, 0.92)",
                         color: "#fff",
                         fontSize: 11,
                         fontWeight: 600,
@@ -285,7 +287,7 @@ export default function Marketplace({ user, token, onNavigate }) {
                         borderRadius: 20,
                       }}
                     >
-                      Pending
+                      {listing.status === "AwaitingPayment" ? "Awaiting Payment" : "Pending"}
                     </div>
                   )}
                 </div>
@@ -407,7 +409,7 @@ export default function Marketplace({ user, token, onNavigate }) {
                         </button>
                       )
                     )}
-                    {listing.status === "Pending" && (
+                    {(listing.status === "Pending" || listing.status === "AwaitingPayment") && (
                       <span
                         style={{
                           flex: 1,
@@ -417,7 +419,7 @@ export default function Marketplace({ user, token, onNavigate }) {
                           padding: "6px 0",
                         }}
                       >
-                        Sale pending
+                        {listing.status === "AwaitingPayment" ? "Awaiting payment" : "Sale pending"}
                       </span>
                     )}
                   </div>

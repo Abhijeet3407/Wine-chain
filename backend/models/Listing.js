@@ -23,9 +23,10 @@ const listingSchema = new mongoose.Schema(
     description: { type: String, default: "" },
     status: {
       type: String,
-      enum: ["Active", "Pending", "Sold", "Unlisted"],
+      enum: ["Active", "Pending", "AwaitingPayment", "Sold", "Unlisted"],
       default: "Active",
     },
+    stripePaymentIntentId: { type: String },
     pendingBuyer: {
       name: { type: String },
       email: { type: String },

@@ -18,7 +18,8 @@
     "mongoose": "^8.0.3",
     "multer": "^2.1.1",
     "multer-storage-cloudinary": "^4.0.0",
-    "resend": "^6.11.0"
+    "resend": "^6.11.0",
+    "stripe": "^22.0.2"
   },
   "devDependencies": {
     "nodemon": "^3.0.2"

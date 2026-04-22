@@ -13,9 +13,10 @@ const offerSchema = new mongoose.Schema(
     message: { type: String, default: "" },
     status: {
       type: String,
-      enum: ["Pending", "Accepted", "Rejected"],
+      enum: ["Pending", "AwaitingPayment", "Accepted", "Rejected"],
       default: "Pending",
     },
+    stripePaymentIntentId: { type: String },
   },
   { timestamps: true }
 );

@@ -5,6 +5,12 @@ require("dotenv").config();
 
 const app = express();
 
+// Stripe webhook needs the raw body — must be mounted before express.json()
+app.use(
+  "/api/marketplace/webhook",
+  require("express").raw({ type: "application/json" })
+);
+
 app.use(cors({
   origin: function(origin, callback) {
     if (!origin) return callback(null, true);
